@@ -15,6 +15,7 @@ var shot_wait := 0
 
 
 func _ready() -> void:
+	_setup_window()
 	_setup_input()
 	if Game.has_arg("ui_demo"):
 		_ui_demo()
@@ -97,6 +98,15 @@ func _teardown() -> void:
 func _to_menu() -> void:
 	_teardown()
 	_show_menu()
+
+
+func _setup_window() -> void:
+	## The same stretch settings as project.godot, applied here too so the HUD keeps
+	## its layout when the files are copied into another project.
+	var w := get_window()
+	w.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
+	w.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
+	w.content_scale_size = Vector2i(1600, 900)
 
 
 func _setup_input() -> void:

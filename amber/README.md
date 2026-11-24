@@ -20,6 +20,8 @@ You play one of the 13 slots, as a survivor or as a killer. Bots fill the rest. 
 2. Open Godot, choose **Import**, and select `amber/project.godot`.
 3. Press **F5** (or the ▶ button). Pick a side on the title screen and click **Enter the quarantine zone**.
 
+If you copied the files into a project of your own instead, that works too, as long as the folders stay as they are (`res://scripts`, `res://scenes` and so on). Open `scenes/main.tscn` and press **F6** to run it. The game needs no project settings.
+
 Everything is generated at runtime, so there are no assets to download. That includes the map, textures, character and prop models, and sound effects. The first launch spends a few seconds importing.
 
 The project uses the **Compatibility** renderer, so it runs on most hardware. On a desktop GPU you can switch to **Forward+** in *Project Settings → Rendering → Renderer*. The game then turns on volumetric fog automatically.
@@ -121,7 +123,7 @@ godot --headless --path amber -- --soak=killer --killer=1 --seed=9
 ```
 amber/
   project.godot, scenes/main.tscn
-  scripts/core/     defs.gd (enums, names), tuning.gd (all numbers), game.gd (autoload: settings, CLI args)
+  scripts/core/     defs.gd (enums, names), tuning.gd (all numbers), game.gd (static class: settings, CLI args)
   scripts/world/    map_gen.gd, map_data.gd, nav.gd (A*), world_view.gd (3D build), mats.gd (procedural
                     textures), models.gd + object_models.gd (model slots and placeholders)
   scripts/game/     match.gd (main loop, events), interact.gd (hold-E actions), bases.gd (radio, heli,
