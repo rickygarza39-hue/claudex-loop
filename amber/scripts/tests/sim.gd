@@ -21,6 +21,7 @@ func _initialize() -> void:
 		var mt := Match.new()
 		mt.sim_log = verbose
 		root.add_child(mt)
+		mt.set_process(false)   # the sim drives every step itself, at a fixed dt
 		mt.setup({"seed": sd, "spectate": true, "card": sd % 4}, false)
 		var steps := 0
 		var trace := OS.get_cmdline_user_args().has("--trace")
