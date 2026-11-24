@@ -125,6 +125,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func update_intents(_dt: float) -> void:
 	if actor == null or not is_instance_valid(actor):
 		return
+	if has_meta("autopilot") and mt.brains.has(actor):
+		return
 	actor.want_move = Vector2.ZERO
 	actor.want_interact = false
 	actor.want_run = false
@@ -330,7 +332,10 @@ func _process(delta: float) -> void:
 		var eye := actor.eye_height()
 		var moving := actor.moved > 0.001
 		if moving:
+			var before := floorf(bob_t / PI)
 			bob_t += actor.moved * 1.9
+			if floorf(bob_t / PI) != before and mt.sfx and not actor.want_crouch:
+				mt.sfx.play2d("step", -6.0 if actor.want_run else -13.0, 1.15 if actor is Survivor else 0.7)
 		var bob := sin(bob_t * 2.0) * 0.035 * (1.0 if moving else 0.0)
 		var sway := sin(bob_t) * 0.02 * (1.0 if moving else 0.0)
 		shake = maxf(0.0, shake - delta * 3.0)

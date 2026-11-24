@@ -65,6 +65,7 @@ func _can_see(s: Survivor) -> bool:
 		r += 2.0 * k.perk("Senses")
 	if k.disoriented():
 		r *= 0.4
+	r *= mt.killer_bot_mult()["sight"]
 	return mt.can_see(k, s, r)
 
 
@@ -81,7 +82,7 @@ func _visible_target() -> Survivor:
 			continue
 		if not seen_since.has(s):
 			seen_since[s] = mt.time
-		var react := Tuning.BOT_REACTION * (1.4 if k.elite or k.husk else 1.0)
+		var react = Tuning.BOT_REACTION * (1.4 if k.elite or k.husk else 1.0) * mt.killer_bot_mult()["react"]
 		if s != target and mt.time - seen_since[s] < react and s.pos.distance_to(k.pos) > 4.0 and mt.time >= s.revealed_until:
 			continue
 		var d = s.pos.distance_to(k.pos)
@@ -182,7 +183,7 @@ func _decide() -> void:
 		if vis != chase_target:
 			chase_target = vis
 			chase_since = mt.time
-		elif mt.time - chase_since > Tuning.BOT_CHASE_GIVEUP and mt.time - k.last_hit_time > Tuning.BOT_CHASE_GIVEUP:
+		elif mt.time - chase_since > Tuning.BOT_CHASE_GIVEUP * mt.killer_bot_mult()["giveup"] and mt.time - k.last_hit_time > Tuning.BOT_CHASE_GIVEUP * mt.killer_bot_mult()["giveup"]:
 			# a long chase going nowhere: drop it and pressure someone else
 			ignore[vis] = mt.time + 25.0
 			chase_target = null
@@ -228,7 +229,7 @@ func _decide() -> void:
 	# helicopter landing zones
 	for d in mt.duos:
 		var b: Base = d.base
-		if b != null and b.heli != null and b.heli.state in ["inbound", "approach", "hover", "landed"] and d.active():
+		if b != null and b.heli != null and b.heli.state in ["inbound", "approach", "hover", "landed"] and d.active() and b.pos.distance_to(k.pos) < Tuning.HELI_RESPONSE_RANGE:
 			if _claimed_by_other("lz", b) and mt.rng.randf() < 0.5:
 				continue
 			state = "guard"
@@ -429,7 +430,7 @@ func _chase(_dt: float) -> void:
 	if k.stalking():
 		k.want_power = true  # drop stalk as soon as we have eyes on prey
 	# signature powers
-	if mt.time >= k.power_cd_until and k.atk_state == "" and not k.husk:
+	if mt.time >= k.power_cd_until and k.atk_state == "" and not k.husk and mt.rng.randf() < mt.killer_bot_mult()["power"]:
 		match k.ktype:
 			Defs.K.BRUTE:
 				if d > 3.5 and d < 10.0 and mt.m.clear_line(k.pos, target.pos, k.radius, false, mt.solid_fn_for(k)) and mt.rng.randf() < 0.2 + aggression * 0.25:
@@ -437,7 +438,7 @@ func _chase(_dt: float) -> void:
 					k.want_power = true
 					return
 			Defs.K.LURKER:
-				var rng_t := Tuning.TONGUE_RANGE * (0.6 if k.elite else 1.0)
+				var rng_t = Tuning.TONGUE_RANGE * (0.5 if k.elite else 1.0)
 				if d > 3.5 and d < rng_t - 1.0 and target.pinned_by == null and mt.m.los(k.pos, k.y + 1.6, target.pos, target.y + 1.0) and mt.rng.randf() < 0.45:
 					k.power_aim = (target.pos + target.vel * 0.15 - k.pos).normalized()
 					k.facing = Actor.yaw_of(k.power_aim)

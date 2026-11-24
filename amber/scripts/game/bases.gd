@@ -43,11 +43,12 @@ func _build_station_node(b: Base) -> void:
 	var lbl := Label3D.new()
 	lbl.text = "%s duo — radio" % b.duo.name
 	lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	lbl.font_size = 40
-	lbl.pixel_size = 0.004
+	lbl.font_size = 28
+	lbl.fixed_size = true
+	lbl.pixel_size = 0.0011
 	lbl.outline_size = 8
 	lbl.modulate = b.duo.color
-	lbl.position = Vector3(0, 2.9, 0)
+	lbl.position = Vector3(0, 3.1, 0)
 	lbl.name = "Label"
 	n.add_child(lbl)
 	var glow := OmniLight3D.new()
@@ -72,6 +73,8 @@ func _refresh_station(b: Base) -> void:
 			part.name = names[i]
 			part.position = offs[i]
 			b.node.add_child(part)
+			if i == 1 and mt.sfx:
+				mt.sfx.loop3d(part, "generator", -10.0)
 	var lbl := b.node.get_node_or_null("Label") as Label3D
 	if lbl:
 		var t := "%s duo — %s" % [b.duo.name, "radio" if b.stage < 3 else "RADIO READY"]

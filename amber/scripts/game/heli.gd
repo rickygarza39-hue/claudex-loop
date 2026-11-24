@@ -67,6 +67,8 @@ func tick(dt: float) -> void:
 			if t <= 18.0:
 				state = "approach"
 				visible = true
+				if mt.sfx:
+					mt.sfx.loop3d(self, "heli", 6.0)
 		"approach":
 			if not mt.jammed():
 				t -= dt
@@ -106,6 +108,12 @@ func _face(d: Vector3) -> void:
 func _land() -> void:
 	state = "landed"
 	t = Tuning.HELI_BOARD_WINDOW
+	# the searchlight blinds anyone waiting in the landing zone
+	for k in mt.killers:
+		if k.released and k.pos.distance_to(lz) < Tuning.HELI_LZ_RADIUS * 1.4:
+			k.stun(Tuning.HELI_SEARCHLIGHT, "flash")
+			if k.slot and k.slot.is_human and mt.hud:
+				mt.hud.flash_screen()
 	position = Vector3(lz.x, lz_h + 6.0, lz.y)
 	mt.feed_to_duo(base.duo, "The helicopter has landed! Board within %d seconds!" % int(Tuning.HELI_BOARD_WINDOW), "good", 8.0)
 	mt.feed_all("A helicopter has landed for %s duo." % base.duo.name, "info")

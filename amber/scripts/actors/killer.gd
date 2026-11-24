@@ -248,6 +248,8 @@ func _post_move(dt: float) -> void:
 
 func _resolve_attack() -> void:
 	anim_attack = 1.0
+	if mt.sfx:
+		mt.sfx.play3d("swing", Vector3(pos.x, y + 1.4, pos.y), -6.0)
 	var fwd := forward2()
 	var best: Survivor = null
 	var best_d := INF
@@ -392,7 +394,7 @@ func _tick_power(dt: float) -> void:
 					stun(Tuning.CHARGE_MISS_STUN, "miss")
 		"tongue_fly":
 			var step := Tuning.TONGUE_SPEED * dt
-			var range_m := Tuning.TONGUE_RANGE * (0.6 if elite else 1.0)
+			var range_m = Tuning.TONGUE_RANGE * (0.5 if elite else 1.0)
 			var next := tongue_tip + tongue_dir * step
 			# wall?
 			var tl2 := MapData.tile_of(next)
@@ -470,7 +472,7 @@ func _end_tongue() -> void:
 	tongue_victim = null
 	constrict_t = -1.0
 	power_state = ""
-	power_cd_until = mt.time + Tuning.TONGUE_COOLDOWN * (1.0 if is_main() else 1.5)
+	power_cd_until = mt.time + Tuning.TONGUE_COOLDOWN * (1.0 if is_main() else 2.0)
 	if tongue_mesh:
 		tongue_mesh.visible = false
 

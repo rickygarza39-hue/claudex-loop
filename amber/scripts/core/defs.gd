@@ -106,8 +106,8 @@ const ELITE_BRANCH_BLURBS := {
 	"Tank": "Stuns and traps hold you 20% shorter per rank",
 	"Bully": "Your hits slow survivors briefly",
 	"Vents": "Rank 1+: squeeze through survivor gaps",
-	"Traps": "Spot survivor traps from further away; disarm faster",
-	"Disguise": "Survivors' bots mistake you for a survivor at range",
+	"Traps": "Survivor traps never catch you: you wreck them instead",
+	"Disguise": "Survivors only recognise you up close",
 }
 
 const DUO_COLORS := [

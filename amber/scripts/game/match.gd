@@ -20,6 +20,7 @@ var paused := false
 var final_push := false
 var released := false
 var sim_log := false
+var difficulty := 1             # 0 easy, 1 normal, 2 hard (applies to bots on the other side)
 
 var slots: Array = []
 var duos: Array = []
@@ -41,8 +42,9 @@ var bases: BaseSys
 var shop: ShopSys
 var nest: NestSys
 var player_slot: Slot = null
-var controller: Node = null
-var hud: Node = null
+var controller = null   # PlayerController (untyped: also null in headless sims)
+var hud = null          # Hud
+var sfx: Sfx = null
 var _disc_t := 0.0
 var _hot_t := 0.0
 var _vis_t := 0.0
@@ -57,6 +59,7 @@ var gap_tiles: Array = []      # squeeze gaps (for bot escapes)
 func setup(config: Dictionary, with_visuals: bool) -> void:
 	cfg = config
 	visuals = with_visuals
+	difficulty = int(cfg.get("difficulty", 1))
 	rng.seed = int(cfg.get("seed", 1)) * 7919 + 13
 	m = MapGen.new().generate(int(cfg.get("seed", 1)))
 	nav = Nav.new(m)
@@ -68,6 +71,9 @@ func setup(config: Dictionary, with_visuals: bool) -> void:
 		for xx in m.w:
 			if m.t(xx, yy) == Defs.T.GAP:
 				gap_tiles.append(Vector2i(xx, yy))
+	if visuals:
+		sfx = Sfx.new()
+		add_child(sfx)
 	interact = Interact.new(self)
 	bases = BaseSys.new(self)
 	shop = ShopSys.new(self)
@@ -128,7 +134,9 @@ func _create_slots() -> void:
 			s.duo = duo
 			s.role = r1 if i == 0 else r2
 			s.is_human = human_here and i == 0
-			s.name = "You" if s.is_human else names[(d * 2 + i) % names.size()]
+			s.name = names[(d * 2 + i) % names.size()]
+			if s.is_human:
+				s.name += " (you)"
 			duo.members.append(s)
 			slots.append(s)
 			if s.is_human:
@@ -146,7 +154,7 @@ func _create_slots() -> void:
 		s.side = Defs.Side.KILLER
 		s.ktype = types[i % 3]
 		s.is_human = i == 0 and side == Defs.Side.KILLER and not spectate
-		s.name = "You (%s)" % Defs.KILLER_NAMES[s.ktype] if s.is_human else "The " + Defs.KILLER_NAMES[s.ktype]
+		s.name = "The " + Defs.KILLER_NAMES[s.ktype] + (" (you)" if s.is_human else "")
 		slots.append(s)
 		if s.is_human:
 			player_slot = s
@@ -446,6 +454,8 @@ func make_noise(p: Vector2, r: float, kind: String, source: Actor, interval: flo
 			return
 		noise_gate[key] = time + interval
 	noises.append({"pos": p, "r": r, "t": time, "kind": kind, "src": source})
+	if sfx != null and r < 900.0:
+		sfx.on_noise(kind, Vector3(p.x, m.height_at(p) + 1.0, p.y))
 
 
 func add_trail(p: Vector2, s: Survivor, blood: bool) -> void:
@@ -496,6 +506,8 @@ func _tick_chases() -> void:
 				s.chased_by = k
 				break
 		if chased:
+			if s.slot.is_human and sfx and time - s.last_seen_by_killer > 12.0:
+				sfx.play2d("stinger", -3.0)
 			s.last_seen_by_killer = time
 			if s.chase_start < 0.0:
 				s.chase_start = time
@@ -516,6 +528,8 @@ func pickup(s: Survivor, it: ItemPickup) -> void:
 		Defs.Item.PART:
 			if s.carry_space() <= 0:
 				return
+			if s.slot.is_human and sfx:
+				sfx.play2d("pickup", -4.0)
 			s.parts.append(it.part)
 			feed_to_duo(s.duo, "%s picked up a %s." % [s.slot.name, Defs.PART_NAMES[it.part]], "info")
 		Defs.Item.CASH:
@@ -665,6 +679,10 @@ func reward(d: Duo, amount: int, why: String, s: Slot) -> void:
 
 
 func on_hit(s: Survivor, k: Killer, res: String) -> void:
+	if sfx != null and res != "none":
+		sfx.play3d("thud", Vector3(s.pos.x, s.y + 1.0, s.pos.y), 2.0)
+		if s.slot.is_human and hud:
+			hud.hurt.color.a = 0.55
 	if sim_log and brains.has(s):
 		var ai = brains[s]
 		print("   HIT %s (%s) by %s goal=%s chased=%s since_seen=%.1f d_threat=%.1f run=%s crouch=%s" % [s.slot.name, res, k.slot.name, ai.goal, str(time - s.last_seen_by_killer < 2.5), time - s.last_seen_by_killer, (ai.threat.pos.distance_to(s.pos) if ai.threat else -1.0), str(s.want_run), str(s.want_crouch)])
@@ -955,6 +973,23 @@ func on_heli_departed(h: Heli) -> void:
 			names.append(sl.name)
 		feed_all("The helicopter left without %s!" % ", ".join(names), "danger", 6.0)
 		h.base.heli_called = false
+
+
+## How sharp the killer bots are (only against a human survivor; bot-vs-bot stays Normal).
+func killer_bot_mult() -> Dictionary:
+	var human_killer := player_slot != null and player_slot.side == Defs.Side.KILLER and not player_slot.elite
+	var d := difficulty if not human_killer else 1
+	return [{"react": 1.6, "sight": 0.85, "giveup": 0.7, "power": 0.6},
+		{"react": 1.0, "sight": 1.0, "giveup": 1.0, "power": 1.0},
+		{"react": 0.55, "sight": 1.15, "giveup": 1.5, "power": 1.3}][d]
+
+
+## How sharp the survivor bots are (only when a human plays a killer).
+func survivor_bot_skill() -> Vector2:
+	var human_killer := player_slot != null and player_slot.side == Defs.Side.KILLER
+	if not human_killer:
+		return Vector2(0.3, 0.75)
+	return [Vector2(0.15, 0.45), Vector2(0.35, 0.8), Vector2(0.65, 0.98)][difficulty]
 
 
 ## Killer route editing: seal a squeeze gap or found hatch, or collapse a narrow tunnel.

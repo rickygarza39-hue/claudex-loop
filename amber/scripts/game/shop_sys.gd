@@ -30,8 +30,9 @@ func _init(match_ref: Match) -> void:
 			var lbl := Label3D.new()
 			lbl.text = "SUPPLY TERMINAL"
 			lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-			lbl.font_size = 36
-			lbl.pixel_size = 0.004
+			lbl.font_size = 26
+			lbl.fixed_size = true
+			lbl.pixel_size = 0.0011
 			lbl.outline_size = 8
 			lbl.position = Vector3(0, 2.5, 0)
 			lbl.modulate = Color(0.85, 0.75, 0.4)

@@ -156,6 +156,10 @@ func tick(dt: float) -> void:
 				if k.released and not k.husk and k.pos.distance_to(pos) < r + k.radius:
 					if mt.time < k.trap_immune_until:
 						continue
+					if k.perk("Traps") > 0:
+						# elite trap-sense: steps around it and wrecks it instead
+						mt.remove_structure(self, false)
+						return
 					armed = false
 					mt.on_trap(self, k)
 					return

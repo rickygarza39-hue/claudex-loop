@@ -163,6 +163,8 @@ const HELI_ARRIVAL := 90.0
 const HELI_BOARD_WINDOW := 15.0
 const HELI_MAX_HOVER := 30.0       # hovering cap so killers can't block the landing forever
 const HELI_LZ_RADIUS := 7.0
+const HELI_SEARCHLIGHT := 4.0      # on landing, killers in the landing zone are blinded this long
+const HELI_RESPONSE_RANGE := 70.0  # killer bots further away than this ignore a helicopter call
 
 # ---- Building ----------------------------------------------------------------------
 # cost: [scrap, money]; hp; build time

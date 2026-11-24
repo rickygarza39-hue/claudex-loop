@@ -39,7 +39,8 @@ var dodge_dir := Vector2.ZERO
 func _init(match_ref: Match, sv: Survivor) -> void:
 	mt = match_ref
 	s = sv
-	skill = mt.rng.randf_range(0.3, 0.75)
+	var sk := mt.survivor_bot_skill()
+	skill = mt.rng.randf_range(sk.x, sk.y)
 	runner = s.role != Defs.Role.ENGINEER
 	think_t = mt.rng.randf() * 0.3
 	steal_ok = mt.rng.randf() < 0.45
@@ -84,6 +85,8 @@ func _sense_killers() -> void:
 			limit = Tuning.LURKER_VISIBLE_RANGE
 		if k.stalking():
 			limit = 3.5
+		if k.elite and k.perk("Disguise") > 0:
+			limit = minf(limit, 7.0 - 1.5 * k.perk("Disguise"))
 		if d < limit and mt.m.los(s.pos, s.y + s.eye_height(), k.pos, k.y + 1.3):
 			seen = true
 		# heartbeat: non-Lurker killers are felt within the terror radius
@@ -334,6 +337,10 @@ func _decide() -> void:
 	if b.stage >= 2 and s.duo.money > b.next_cost() + 120 and mt.time > donate_t:
 		donate_t = mt.time + 60.0
 		_donate()
+	# fortify while passing through the base (placement is instant)
+	if mt.time > build_t and s.duo.scrap >= 1 and s.pos.distance_to(b.pos) < 9.0 and threat == null:
+		build_t = mt.time + 8.0
+		_build_defences()
 	# grab loot lying close by
 	if threat == null:
 		for kind in [Defs.Item.CASH, Defs.Item.SCRAP]:
