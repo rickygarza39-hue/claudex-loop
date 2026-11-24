@@ -22,6 +22,9 @@ func _ready() -> void:
 	if Game.has_arg("input_smoke"):
 		_input_smoke()
 		return
+	if Game.has_arg("video"):
+		_video(Game.arg("video"))
+		return
 	if Game.has_arg("play"):
 		_start({"seed": int(Game.arg("seed", "7")), "side": Defs.Side.KILLER if Game.arg("play") == "killer" else Defs.Side.SURVIVOR,
 			"role": int(Game.arg("role", "0")), "killer": int(Game.arg("killer", "0")), "card": int(Game.arg("card", "1")), "spectate": Game.arg("play") == "watch"})
@@ -132,8 +135,9 @@ func _process(_delta: float) -> void:
 		if a != null and is_instance_valid(a) and not mt.brains.has(a):
 			_attach_autopilot()
 		if a != null and is_instance_valid(a):
-			pc.yaw = a.facing
-			pc.pitch = lerpf(pc.pitch, -0.12, 0.1)
+			# smooth the bot's snappy turns so the recording reads like a player's view
+			pc.yaw = lerp_angle(pc.yaw, a.facing, 0.12)
+			pc.pitch = lerpf(pc.pitch, -0.06, 0.05)
 	if shot_dir == "" or mt == null:
 		return
 	if shot_i >= shot_times.size() or mt.over:
@@ -287,4 +291,75 @@ func _input_smoke() -> void:
 		await get_tree().process_frame
 	await _tap("primary")
 	print("smoke: watch mode done")
+	get_tree().quit()
+
+
+# ------------------------------------------------------------------------------
+# Video director (--video=survivor|killer, run with --write-movie): records
+# stretches of autopilot play, fast-forwarding between them.
+
+func _ff_to(t: float) -> void:
+	while mt != null and not mt.over and mt.time < t:
+		mt.step(0.05)
+
+
+func _ff_until(cond: Callable, limit: float) -> bool:
+	while mt != null and not mt.over and mt.time < limit:
+		mt.step(0.05)
+		if cond.call():
+			return true
+	return false
+
+
+func _record(seconds: float, show_map: bool = false) -> void:
+	var end_t := mt.time + seconds
+	hud.force_map = show_map
+	while mt != null and not mt.over and mt.time < end_t:
+		await get_tree().process_frame
+	hud.force_map = false
+
+
+func _killer_near_player(dist: float) -> bool:
+	var a = mt.player_slot.actor
+	if a == null or not is_instance_valid(a):
+		return false
+	for k in mt.killers:
+		if k.released and k.is_main() and k.pos.distance_to(a.pos) < dist and mt.m.los(a.pos, a.y + 1.6, k.pos, k.y + 1.4):
+			return true
+	return false
+
+
+func _video(plan: String) -> void:
+	var killer := plan == "killer"
+	_start({"seed": int(Game.arg("seed", "11")), "side": Defs.Side.KILLER if killer else Defs.Side.SURVIVOR,
+		"role": int(Game.arg("role", "0")), "killer": int(Game.arg("killer", "2")), "card": int(Game.arg("card", "1")),
+		"spectate": false, "difficulty": 1})
+	autopilot = true
+	_attach_autopilot()
+	pc.flash_on = true
+	if not killer:
+		await _record(16.0)                     # locked in, picking the cell lock with your partner
+		_ff_to(34.0)
+		await _record(10.0)                     # out, scavenging, killers released
+		_ff_to(150.0)
+		await _record(5.0, true)                # the map (Tab)
+		if _ff_until(func(): return _killer_near_player(16.0), 900.0):
+			await _record(16.0)                 # a killer closes in
+		if _ff_until(func(): return mt.player_slot.duo != null and mt.player_slot.duo.base != null and mt.player_slot.duo.base.stage >= 2, 1200.0):
+			await _record(8.0)
+		if _ff_until(func(): return _killer_near_player(12.0), 1500.0):
+			await _record(14.0)
+	else:
+		await _record(6.0)                      # waiting at the Nest
+		_ff_to(Tuning.KILLER_RELEASE - 1.0)
+		await _record(12.0)                     # released into the lab
+		var hunting := func():
+			var ai = mt.brains.get(mt.player_slot.actor)
+			return ai != null and ai.state == "chase" and ai.target != null and is_instance_valid(ai.target) and ai.target.pos.distance_to(mt.player_slot.actor.pos) < 13.0
+		if _ff_until(hunting, 600.0):
+			await _record(18.0)                 # a chase
+		_ff_to(mt.time + 60.0)
+		await _record(5.0, true)                # the killer's map: hot zones, noises, known bases
+		if _ff_until(hunting, 1200.0):
+			await _record(18.0)
 	get_tree().quit()

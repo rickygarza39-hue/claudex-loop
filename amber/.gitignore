@@ -3,3 +3,6 @@
 *.tmp
 /android/
 /build/
+
+# temporary render settings (video recording)
+override.cfg
