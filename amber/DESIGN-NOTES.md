@@ -95,18 +95,20 @@ The results screen also lists every player's outcome, so partial wins are visibl
 
 ## Balance status (bots against bots)
 
-`scripts/tests/sim.gd` runs whole matches with all 13 slots as bots. The final batch, 16 matches on seeds 1–16 at Normal difficulty:
+`scripts/tests/sim.gd` runs whole matches with all 13 slots as bots. The final batch, 32 matches on seeds 1–32 at Normal difficulty:
 
 | | |
 |---|---|
-| Average match length | **18:22** (shortest 9:46, longest 27:00; 1 reached the 27:00 purge) |
-| Survivors escaping | **10 of 160** (0.62 per match), in 5 of 16 matches |
-| Antenna built | 69 of 80 duos, on average at 2:46 |
-| Generator built | 44 duos, on average at 5:52 |
-| Transmitter built | 13 duos, on average at 8:42 |
-| Helicopters called / survivors escaped | 12 / 10 |
+| Average match length | **18:12** (shortest 11:01, longest 27:00; 5 reached the 27:00 purge) |
+| Survivors escaping | **18 of 320** (0.56 per match), in 6 of 32 matches |
+| Antenna built | 144 of 160 duos, on average at 2:17 |
+| Generator built | 96 duos, on average at 5:35 |
+| Transmitter built | 20 duos, on average at 10:06 |
+| Helicopters called / landed / left with their duo | 20 / 18 / 9 |
 
-The killers win most matches. Survivors who get their radio finished usually get out. The rest are run down while scavenging stage-3 parts from the lab, the deep mines and the high ground.
+The killers win most matches. A duo that calls a helicopter gets out about half the time: of the 18 helicopters that landed, 9 left with their duo and 8 left empty. Most other survivors are run down while scavenging stage-3 parts from the lab, the deep mines and the high ground.
+
+Escapes come in clusters, so small batches swing a lot: seeds 1–16 gave 4 escapes and seeds 17–32 gave 14. Judge a tuning change on 32 matches or more.
 
 How to read it: bots are a proxy. Killer bots hunt by sight and sound with a short reaction delay. Survivor bots crouch-sneak, break line of sight, use squeeze gaps, flee to their base and defend the landing zone. A human survivor will do things bots don't, and so will a human killer. Use the Easy, Normal and Hard setting to compensate.
 
@@ -120,4 +122,4 @@ What moved the numbers most during tuning, in case you want to push further:
 To get closer to the GDD's 25 minutes, the next things to try are:
 - slightly slower killers;
 - fewer active elites at once;
-- a longer boarding window, since a few duos died standing at their own landing zone.
+- a longer boarding window or a shorter wait for the helicopter, since 8 of the 18 that landed left empty.
