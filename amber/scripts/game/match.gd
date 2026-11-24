@@ -61,6 +61,7 @@ func setup(config: Dictionary, with_visuals: bool) -> void:
 	visuals = with_visuals
 	difficulty = int(cfg.get("difficulty", 1))
 	rng.seed = int(cfg.get("seed", 1)) * 7919 + 13
+	SurvivorAI.reset_shared()
 	m = MapGen.new().generate(int(cfg.get("seed", 1)))
 	nav = Nav.new(m)
 	if visuals:
@@ -547,6 +548,7 @@ func pickup(s: Survivor, it: ItemPickup) -> void:
 	items.erase(it)
 	for d in duos:
 		d.known_items.erase(it)
+	SurvivorAI.claims.erase(it)
 	it.queue_free()
 
 
@@ -758,6 +760,7 @@ func _retire_survivor(s: Survivor, turned_in_base: bool) -> void:
 	s.release_pin()
 	survivors.erase(s)
 	brains.erase(s)
+	SurvivorAI.release_claims(s)
 	if controller and controller.has_method("on_actor_retired"):
 		controller.on_actor_retired(s)
 	s.queue_free()
@@ -954,6 +957,7 @@ func on_boarded(s: Survivor, h: Heli) -> void:
 	log_event("%s escaped at %.0fs" % [s.slot.name, time])
 	survivors.erase(s)
 	brains.erase(s)
+	SurvivorAI.release_claims(s)
 	if controller and controller.has_method("on_actor_retired"):
 		controller.on_actor_retired(s)
 	s.queue_free()

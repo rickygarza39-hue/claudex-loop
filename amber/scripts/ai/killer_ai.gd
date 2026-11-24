@@ -131,7 +131,8 @@ func _heard() -> Vector2:
 		if mt.time - n["t"] > 2.5:
 			continue
 		var src = n["src"]
-		if src is Killer:
+		# the source may have left the match since; its noise still counts
+		if is_instance_valid(src) and src is Killer:
 			continue
 		var d: float = n["pos"].distance_to(k.pos)
 		if d > n["r"] * range_mult:
@@ -153,8 +154,11 @@ func _trail_next() -> Vector2:
 	var bt := -INF
 	var r := 11.0 + 3.0 * k.perk("Senses")
 	for tr in mt.trails:
-		var s: Survivor = tr["s"]
-		if not is_instance_valid(s) or s.slot.outcome != "" or s.masked():
+		var sv = tr["s"]
+		if not is_instance_valid(sv):
+			continue
+		var s := sv as Survivor
+		if s.slot.outcome != "" or s.masked():
 			continue
 		var d: float = tr["pos"].distance_to(k.pos)
 		if d > r or d < 1.2:

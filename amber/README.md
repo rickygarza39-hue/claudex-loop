@@ -111,6 +111,9 @@ godot --path amber -- --play=survivor --role=0 --seed=11 --autopilot --shots=/tm
 
 # capture the menus and panels
 godot --path amber -- --ui_demo=/tmp/ui
+
+# soak test: a whole match fast-forwarded with the HUD, map and autopilot running (survivor, killer or watch)
+godot --headless --path amber -- --soak=killer --killer=1 --seed=9
 ```
 
 ## Project layout

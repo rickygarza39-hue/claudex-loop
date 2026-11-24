@@ -28,6 +28,9 @@ func _initialize() -> void:
 		while not mt.over and steps < 200000:
 			mt.step(dt)
 			steps += 1
+			# let a frame pass now and then so queue_free() really frees nodes, as in the game
+			if steps % 20 == 0:
+				await process_frame
 			if trace and mt.time >= next_trace:
 				next_trace += 60.0
 				print("-- t=%s" % Match.fmt_time(mt.time))
@@ -55,6 +58,7 @@ func _initialize() -> void:
 		print("   final stages: ", " ".join(stages), "   nest fired: ", mt.nest.fired)
 		summary.append([sd, mt.time, r.get("escaped", 0), r.get("caught", 0)])
 		mt.queue_free()
+		await process_frame
 	print("\nSUMMARY")
 	var tot_e := 0
 	var tot_t := 0.0

@@ -144,7 +144,7 @@ func _draw() -> void:
 		for hz in mt.hotzones:
 			draw_circle(w2s(hz["pos"]), hz["r"] / Defs.TILE * cell, Color(1.0, 0.25, 0.15, 0.12))
 		for n in mt.noises:
-			if n["src"] is Killer:
+			if is_instance_valid(n["src"]) and n["src"] is Killer:
 				continue
 			var age: float = mt.time - n["t"]
 			draw_arc(w2s(n["pos"]), 4.0 + age * 6.0, 0, TAU, 16, Color(1, 0.3, 0.2, clampf(1.0 - age / 4.0, 0.0, 1.0)), 2.0)

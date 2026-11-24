@@ -5,6 +5,20 @@ extends RefCounted
 static var claims := {}        # ItemPickup -> Survivor (who is going for it)
 static var base_plans := {}    # duo id -> Vector2 chosen base site
 
+
+## Both tables are shared by every bot, so Match.setup() clears them for each new match.
+static func reset_shared() -> void:
+	claims.clear()
+	base_plans.clear()
+
+
+## Called when a survivor leaves the match (caught, turned or escaped).
+static func release_claims(sv: Object) -> void:
+	for it in claims.keys():
+		var c = claims[it]
+		if not is_instance_valid(c) or c == sv:
+			claims.erase(it)
+
 var mt: Match
 var s: Survivor
 var think_t := 0.0
@@ -419,6 +433,15 @@ func _needed_parts() -> Array:
 	return need
 
 
+func _claimed_by_partner(it: Object) -> bool:
+	## True when a live partner is already heading for this item.
+	var c = claims.get(it)
+	if not is_instance_valid(c) or c == s:
+		return false
+	var cs := c as Survivor
+	return cs.slot.outcome == "" and cs.duo == s.duo
+
+
 func _nearest_needed(need: Array) -> ItemPickup:
 	var best: ItemPickup = null
 	var bd := INF
@@ -430,8 +453,7 @@ func _nearest_needed(need: Array) -> ItemPickup:
 			continue
 		if unreachable.has(it):
 			continue
-		var c: Survivor = claims.get(it)
-		if c != null and c != s and is_instance_valid(c) and c.slot.outcome == "" and c.duo == s.duo:
+		if _claimed_by_partner(it):
 			continue
 		var d = it.pos.distance_to(s.pos)
 		if not first_stage.has(it.part):
@@ -454,8 +476,7 @@ func _nearest_known(kind: int, part: int, max_d: float) -> ItemPickup:
 			continue
 		if unreachable.has(it):
 			continue
-		var c: Survivor = claims.get(it)
-		if c != null and c != s and is_instance_valid(c) and c.slot.outcome == "" and c.duo == s.duo:
+		if _claimed_by_partner(it):
 			continue
 		var d = it.pos.distance_to(s.pos)
 		if d < bd:

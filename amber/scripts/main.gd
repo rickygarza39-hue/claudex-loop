@@ -25,6 +25,9 @@ func _ready() -> void:
 	if Game.has_arg("video"):
 		_video(Game.arg("video"))
 		return
+	if Game.has_arg("soak"):
+		_soak(Game.arg("soak"))
+		return
 	if Game.has_arg("play"):
 		_start({"seed": int(Game.arg("seed", "7")), "side": Defs.Side.KILLER if Game.arg("play") == "killer" else Defs.Side.SURVIVOR,
 			"role": int(Game.arg("role", "0")), "killer": int(Game.arg("killer", "0")), "card": int(Game.arg("card", "1")), "spectate": Game.arg("play") == "watch"})
@@ -317,6 +320,30 @@ func _record(seconds: float, show_map: bool = false) -> void:
 	while mt != null and not mt.over and mt.time < end_t:
 		await get_tree().process_frame
 	hud.force_map = false
+
+
+# Soak test (--soak=survivor|killer|watch): a whole match with the HUD, map and
+# autopilot, fast-forwarded about 1 s of match time per frame, to catch runtime errors.
+func _soak(side: String) -> void:
+	_start({"seed": int(Game.arg("seed", "5")), "side": Defs.Side.KILLER if side == "killer" else Defs.Side.SURVIVOR,
+		"role": int(Game.arg("role", "0")), "killer": int(Game.arg("killer", "0")), "card": int(Game.arg("card", "1")),
+		"spectate": side == "watch"})
+	if side != "watch":
+		autopilot = true
+		_attach_autopilot()
+	var frames := 0
+	while mt != null and not mt.over:
+		for i in 20:
+			if mt.over:
+				break
+			mt.step(0.05)
+		hud.force_map = frames % 3 == 0
+		frames += 1
+		await get_tree().process_frame
+	print("soak: %s seed %d finished at %s (%s), %d frames" % [side, mt.cfg.get("seed", 0), Match.fmt_time(mt.time), mt.result.get("reason", "?"), frames])
+	for i in 30:
+		await get_tree().process_frame
+	get_tree().quit()
 
 
 func _killer_near_player(dist: float) -> bool:
