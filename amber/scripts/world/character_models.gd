@@ -168,7 +168,7 @@ static func _wet(c: Color) -> StandardMaterial3D:
 
 
 static func _blood() -> StandardMaterial3D:
-	return Mats.organic(Color(0.2, 0.012, 0.01), 0.25, 2.0, 0.2, 0.5)
+	return Mats.organic(Color(0.13, 0.025, 0.018), 0.3, 2.0, 0.2, 0.5)
 
 
 static func _bone() -> StandardMaterial3D:
@@ -215,7 +215,7 @@ static func _eyes(head: Node3D, pts: Array, r: float, col: Color = Color(1.0, 0.
 ## skin over a respirator, six burning eyes and fingers that end in long hooked blades.
 static func tracker(root: Node3D, _o: Dictionary) -> void:
 	var skin := _wet(Color(0.2, 0.17, 0.16))
-	var raw := _wet(Color(0.36, 0.12, 0.1))
+	var raw := _wet(Color(0.26, 0.1, 0.085))
 	var coat := _m(Color(0.06, 0.055, 0.05), 0.95)
 	var j := biped(root, {"top": raw, "bottom": coat, "boots": skin, "skin": skin, "sleeve": skin, "hands": skin,
 		"thigh": 0.52, "shin": 0.56, "torso_h": 0.62, "chest_w": 0.32, "waist_w": 0.2, "chest_d": 0.2, "shoulder_w": 0.2,
@@ -268,8 +268,8 @@ static func tracker(root: Node3D, _o: Dictionary) -> void:
 ## behind a welded cage, bone spikes out of the back, a butcher's apron soaked through,
 ## a meat hook on a chain and a cleaver the size of a door.
 static func brute(root: Node3D, _o: Dictionary) -> void:
-	var skin := _wet(Color(0.42, 0.3, 0.27))
-	var meat := _wet(Color(0.45, 0.1, 0.09))
+	var skin := _wet(Color(0.34, 0.29, 0.27))
+	var meat := _wet(Color(0.27, 0.1, 0.085))
 	var apron := _m(Color(0.22, 0.17, 0.12), 0.45)
 	var metal := _m(Color(0.3, 0.27, 0.24), 0.45, 0.8)
 	var j := biped(root, {"top": skin, "bottom": apron, "boots": _m(Color(0.07, 0.06, 0.05)), "skin": skin,
@@ -396,8 +396,8 @@ static func foreman(root: Node3D, _o: Dictionary) -> void:
 ## The Hollow: a miner opened up by the infection. The ribs have split outward into a jaw
 ## the size of a chest, there is no face left, and it moves best on all fours.
 static func hollow(root: Node3D, _o: Dictionary) -> void:
-	var skin := _wet(Color(0.33, 0.3, 0.28))
-	var raw := _wet(Color(0.42, 0.06, 0.06))
+	var skin := _wet(Color(0.5, 0.47, 0.42))
+	var raw := _wet(Color(0.28, 0.06, 0.05))
 	var j := biped(root, {"top": skin, "bottom": skin, "boots": skin, "skin": skin,
 		"thigh": 0.5, "shin": 0.5, "foot_h": 0.05, "torso_h": 0.6, "chest_w": 0.34, "waist_w": 0.2, "chest_d": 0.22, "shoulder_w": 0.2,
 		"upper_arm": 0.55, "forearm": 0.55, "neck": 0.14, "head_r": 0.11, "leg_r": 0.045, "arm_r": 0.035})
@@ -422,6 +422,13 @@ static func hollow(root: Node3D, _o: Dictionary) -> void:
 	for h in ["HandL", "HandR"]:
 		for k in 4:
 			Models.box(j[h], Vector3(0.012, 0.22, 0.012), claw, Vector3((k - 1.5) * 0.022, -0.14, -0.02), Vector3(0.3, 0, 0))
+	# bone blades split out of the forearms, longer than the arm
+	for fa in ["ForearmL", "ForearmR"]:
+		var bl := Models.pivot(j[fa], "BoneBlade", Vector3(0, -0.1, 0.03))
+		bl.rotation.x = -0.35
+		Models.box(bl, Vector3(0.02, 0.7, 0.06), bone, Vector3(0, -0.35, 0))
+		Models.box(bl, Vector3(0.018, 0.2, 0.05), bone, Vector3(0, -0.76, -0.05), Vector3(0.5, 0, 0))
+		Models.box(bl, Vector3(0.022, 0.12, 0.065), raw, Vector3(0, 0.0, 0))
 
 
 ## The Furnace: a smelter hand still burning inside. Charred black skin split by glowing
@@ -494,7 +501,7 @@ static func tally(root: Node3D, _o: Dictionary) -> void:
 ## four arms, the rags of choir robes.
 static func choir(root: Node3D, _o: Dictionary) -> void:
 	var skin := _wet(Color(0.42, 0.36, 0.33))
-	var robe := Mats.organic(Color(0.25, 0.04, 0.05), 0.9, 2.5, 0.25, 0.35)
+	var robe := Mats.organic(Color(0.13, 0.06, 0.055), 0.95, 2.5, 0.25, 0.4)
 	var j := biped(root, {"top": robe, "bottom": robe, "boots": skin, "skin": skin, "sleeve": skin,
 		"thigh": 0.5, "shin": 0.5, "torso_h": 0.72, "chest_w": 0.7, "waist_w": 0.55, "chest_d": 0.36, "shoulder_w": 0.4,
 		"upper_arm": 0.42, "forearm": 0.42, "neck": 0.16, "head_r": 0.12, "leg_r": 0.08, "arm_r": 0.05})

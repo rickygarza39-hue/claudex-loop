@@ -67,6 +67,15 @@ func _build_model() -> void:
 	if elite and slot != null and slot.duo != null:
 		col = slot.duo.color
 	attach_model(Models.make(slot_name, {"color": col}))
+	if not elite and not husk:
+		# a cold rim light from behind: the killer reads as a silhouette against the fog
+		var rim := OmniLight3D.new()
+		rim.light_color = Color(0.45, 0.55, 0.75)
+		rim.light_energy = 0.9
+		rim.omni_range = 3.2
+		rim.position = Vector3(0, Tuning.KILLER_EYE[ktype] + 0.2, 0.9)
+		rim.shadow_enabled = false
+		model_root.add_child(rim)
 	if elite:
 		model_root.scale = Vector3.ONE * (1.0 + 0.05 * ktype)
 	tongue_mesh = MeshInstance3D.new()
