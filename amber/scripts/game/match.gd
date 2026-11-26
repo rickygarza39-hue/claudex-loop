@@ -39,7 +39,6 @@ var brains := {}               # Actor -> AI brain
 var noise_gate := {}
 var interact: Interact
 var bases: BaseSys
-var shop: ShopSys
 var nest: NestSys
 var player_slot: Slot = null
 var controller = null   # PlayerController (untyped: also null in headless sims)
@@ -77,7 +76,6 @@ func setup(config: Dictionary, with_visuals: bool) -> void:
 		add_child(sfx)
 	interact = Interact.new(self)
 	bases = BaseSys.new(self)
-	shop = ShopSys.new(self)
 	for t in m.terminals:
 		solid_tiles[t] = true
 	nest = NestSys.new(self, int(cfg.get("card", Defs.Card.PULSE)))
@@ -89,8 +87,65 @@ func setup(config: Dictionary, with_visuals: bool) -> void:
 	_create_slots()
 	_spawn_items()
 	_spawn_actors()
+	_apply_loadouts()
 	_shift_hotzones()
 	feed_all("Escape your quarantine cell. The killers are released in %d seconds." % int(Tuning.KILLER_RELEASE), "alert", 7.0)
+
+
+## Items now come from loadouts, not a shop or map pickups. The player brings
+## what they equipped (plus the stats from their skill trees); bots roll a kit.
+func _apply_loadouts() -> void:
+	for sl in slots:
+		var a: Actor = sl.actor
+		if a == null:
+			continue
+		if sl.is_human and not cfg.get("spectate", false):
+			if a is Survivor:
+				var s := a as Survivor
+				sl.mods = Progression.mods_for(["kit", Progression.survivor_tree(s.role)])
+				for it in Progression.loadout():
+					_give_item(s, it)
+				s.duo.money += int(s.meta("money"))
+				s.duo.scrap += int(s.meta("scrap"))
+			else:
+				sl.mods = Progression.mods_for([Progression.killer_tree((a as Killer).ktype)])
+		elif a is Survivor:
+			var s2 := a as Survivor
+			for it in Tuning.BOT_LOADOUT_ODDS:
+				if rng.randf() < Tuning.BOT_LOADOUT_ODDS[it]:
+					_give_item(s2, it)
+
+
+func _give_item(s: Survivor, item: String) -> void:
+	match item:
+		"flare":
+			s.flare = 1 + int(s.meta("flare_count"))
+		"medkit":
+			s.medkit += 1
+		"cure":
+			s.cure += 1
+		"traps":
+			s.traps[0] = mini(s.traps[0] + 1, s.trap_capacity())
+			s.traps[1] = mini(s.traps[1] + 1, s.trap_capacity())
+		"scanner":
+			s.scanner += 1
+
+
+func use_medkit(s: Survivor) -> bool:
+	if s.medkit <= 0 or s.health != Defs.Health.WOUNDED or not s.can_act():
+		return false
+	s.medkit -= 1
+	s.heal_one()
+	feed_to_duo(s.duo, "%s used a medkit." % s.slot.name, "good", 2.5)
+	return true
+
+
+func use_scanner(s: Survivor) -> bool:
+	if s.scanner <= 0:
+		return false
+	s.scanner -= 1
+	scan_parts(s)
+	return true
 
 
 func _shuffled(arr: Array) -> Array:
@@ -163,6 +218,8 @@ func _create_slots() -> void:
 
 func _spawn_items() -> void:
 	for it in m.items:
+		if it["kind"] == Defs.Item.FLARE:
+			continue        # flare guns are loadout items now, not map pickups
 		_make_item(it["kind"], it["part"], it["amount"], MapData.center_of(it["tile"]))
 
 
@@ -241,7 +298,6 @@ func step(dt: float) -> void:
 		a.physics_step(dt)
 	_separate()
 	bases.tick(dt)
-	shop.tick(dt)
 	nest.tick(dt)
 	for s in survivors:
 		bases.auto_deposit(s)
@@ -376,11 +432,13 @@ func items_near(p: Vector2, r: float) -> Array:
 
 func build_mult(a: Actor) -> float:
 	if a is Survivor:
+		var bm := 1.0 + a.meta("build")
 		match (a as Survivor).role:
 			Defs.Role.ENGINEER:
-				return Tuning.ENGINEER_BUILD_MULT
+				return Tuning.ENGINEER_BUILD_MULT * bm
 			Defs.Role.MEDIC:
-				return Tuning.MEDIC_BUILD_MULT
+				return Tuning.MEDIC_BUILD_MULT * bm
+		return bm
 	return 1.0
 
 
@@ -476,7 +534,7 @@ func _discover() -> void:
 	for s in living_survivors():
 		if s.is_downed():
 			continue
-		var sight := Tuning.SURV_SIGHT_DARK if blackout() else Tuning.ITEM_SPOT_RANGE
+		var sight: float = Tuning.SURV_SIGHT_DARK if blackout() else Tuning.ITEM_SPOT_RANGE * (1.0 + s.meta("spot"))
 		for it in items:
 			if it.taken or s.duo.known_items.has(it):
 				continue
@@ -752,9 +810,7 @@ func _retire_survivor(s: Survivor, turned_in_base: bool) -> void:
 	for p in s.parts:
 		drop_part(p, at)
 	s.parts.clear()
-	if s.flare > 0:
-		_make_item(Defs.Item.FLARE, -1, 1, at)
-		s.flare = 0
+	s.flare = 0
 	if s.hidden_in:
 		bases.unhide(s)
 	s.release_pin()
@@ -884,12 +940,12 @@ func use_flare(s: Survivor) -> bool:
 		if dist < bd:
 			bd = dist
 			best = k
-	s.flare = 0
+	s.flare -= 1
 	make_noise(s.pos, 30.0, "flare", s)
 	if best == null:
 		feed_to_duo(s.duo, "The flare missed!", "danger", 2.5)
 		return true
-	best.stun(Tuning.KNOCKDOWN_STUN, "knockdown")
+	best.stun(Tuning.KNOCKDOWN_STUN + s.meta("flare_stun"), "knockdown")
 	reward(s.duo, Tuning.REWARD_KNOCKDOWN, "knocked down %s" % best.slot.name, s.slot)
 	s.slot.stats["stuns"] += 1
 	_collect_bounty(best, s.duo)
@@ -911,7 +967,7 @@ func place_trap(s: Survivor, which: int) -> bool:
 func scent_mask(s: Survivor) -> bool:
 	if s.role != Defs.Role.MEDIC or time < s.ability_cd_until or not s.can_act():
 		return false
-	s.ability_cd_until = time + Tuning.SCENT_MASK_COOLDOWN
+	s.ability_cd_until = time + Tuning.SCENT_MASK_COOLDOWN * (1.0 - s.meta("ability_cd"))
 	for o in living_survivors():
 		if o.pos.distance_to(s.pos) <= Tuning.SCENT_MASK_RADIUS:
 			o.masked_until = time + Tuning.SCENT_MASK_TIME
@@ -1098,9 +1154,6 @@ func remove_husk(k: Killer) -> void:
 	k.queue_free()
 
 
-func open_shop_ui(t: Dictionary) -> void:
-	if hud and hud.has_method("open_shop"):
-		hud.open_shop(t)
 
 
 # ==============================================================================
@@ -1190,4 +1243,6 @@ func _end_match(reason: String) -> void:
 	result = {"reason": reason, "time": time, "escaped": escaped, "caught": caught, "killers_win": killers_win, "rows": rows,
 		"log": log_lines, "seed": cfg.get("seed", 0), "player": player_slot.name if player_slot else ""}
 	log_event("Match over (%s): %d escaped, %d caught or turned" % [reason, escaped, caught])
+	if player_slot != null and visuals and not cfg.get("spectate", false):
+		result["progress"] = Progression.award(self, player_slot)
 	match_over.emit(result)

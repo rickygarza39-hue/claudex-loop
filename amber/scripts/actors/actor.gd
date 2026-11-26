@@ -7,6 +7,12 @@ const T := Defs.TILE
 
 var mt: Match
 var slot: Slot
+
+
+## A stat bought in the progression trees (0 for bots and unbought stats).
+func meta(key: String) -> float:
+	return slot.mods.get(key, 0.0) if slot != null else 0.0
+
 var pos := Vector2.ZERO
 var y := 0.0
 var facing := 0.0        # yaw (radians); forward = (-sin, -cos)

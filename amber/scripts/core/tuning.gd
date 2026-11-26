@@ -116,16 +116,14 @@ const CURE_USE_TIME := 4.0
 # ---- Economy ------------------------------------------------------------------------
 const START_MONEY := 40
 const START_SCRAP := 2
-const STAGE_COST := [40, 120, 190]
+const STAGE_COST := [0, 0, 0]       # radio stages need only the parts you find; money is for base building
+const REPAIR_COST := [30, 45, 60]   # fixing a smashed station, by stage
 const STAGE_BUILD_TIME := [16.0, 26.0, 36.0]
-const REPAIR_COST_FRAC := 0.15
 const REPAIR_TIME := 8.0
 const STATION_HP := 300.0
 const STATION_DAMAGE_MULT := 0.3  # killers' swings do less to the radio than to walls
 const GENERATOR_NOISE_EVERY := 22.0  # a running generator is heard nearby every so often
 const REVEAL_ON_STAGE := 35.0      # seconds a base stays revealed after finishing a stage
-const CURE_COST := 200
-const CURE_STOCK := 5
 const CARRY_PARTS := 2
 const REWARD_SNARE := 25
 const REWARD_FLASH := 25
@@ -138,23 +136,14 @@ const CASH_CACHES := 90
 const CASH_MIN := 14
 const CASH_MAX := 38
 const SCRAP_PILES := 65
+# Bots roll their loadout: chance of carrying each item
+const BOT_LOADOUT_ODDS := {"flare": 0.3, "medkit": 0.35, "cure": 0.25, "traps": 0.3, "scanner": 0.2}
 const SCRAP_PER_PILE := 2
 const PART_COUNTS := [7, 6, 6, 6, 6, 6]  # Cable, Fuel, Spark, Circuit, Cell, Dish
 const DONATE_STEP := 25
 
-# ---- Shop ---------------------------------------------------------------------------
+# ---- Map terminals (leftover map feature, unused since the shop was removed) -----
 const SHOP_TERMINALS := 4
-const SHOP_OPEN_COUNT := 2         # terminals that open each window
-const SHOP_INTERVAL := 300.0
-const SHOP_OPEN_TIME := 60.0
-const SHOP_WARNING := 20.0
-const SHOP_ITEMS := {
-	"cure": {"name": "Cure", "cost": CURE_COST, "desc": "Saves a downed survivor from turning. 5 per match, one per person."},
-	"medkit": {"name": "Medkit", "cost": 45, "desc": "Heal yourself from wounded instantly."},
-	"traps": {"name": "Trap kit", "cost": 35, "desc": "+1 snare and +1 flash trap."},
-	"scrap": {"name": "Scrap crate", "cost": 30, "desc": "+4 scrap for your duo."},
-	"scanner": {"name": "Part scanner", "cost": 25, "desc": "Reveals the nearest parts your radio needs."},
-}
 
 # ---- Radio / helicopter -------------------------------------------------------------
 const BASE_RADIUS := 6             # tiles

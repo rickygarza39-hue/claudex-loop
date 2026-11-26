@@ -138,7 +138,7 @@ func move_speed() -> float:
 	if not channel.is_empty():
 		return 0.0
 	if power_state == "charge":
-		return Tuning.CHARGE_SPEED * (0.85 if elite else 1.0)
+		return Tuning.CHARGE_SPEED * (0.85 if elite else 1.0) * (1.0 + meta("charge"))
 	var s: float
 	if husk:
 		s = Tuning.HUSK_SPEED
@@ -161,7 +161,13 @@ func move_speed() -> float:
 	if mt.time < tired_until:
 		s *= Tuning.TIRE_MULT
 	s *= mt.pack_bonus(self)
+	s *= 1.0 + meta("k_move")
 	return s
+
+
+## Power cooldown multiplier from the progression trees.
+func _cdm() -> float:
+	return maxf(0.4, 1.0 - meta("k_power"))
 
 
 # ------------------------------------------------------------------------------
@@ -175,6 +181,7 @@ func stun(duration: float, kind: String) -> bool:
 	if ktype == Defs.K.BRUTE and is_main():
 		d *= Tuning.BRUTE_STUN_MULT
 	d *= maxf(0.4, 1.0 - 0.2 * perk("Tank"))
+	d *= maxf(0.4, 1.0 - meta("k_stun"))
 	if kind == "snare":
 		held_until = maxf(held_until, mt.time + d)
 		trap_immune_until = mt.time + d + Tuning.TRAP_IMMUNITY
@@ -193,7 +200,7 @@ func _interrupt() -> void:
 		_end_tongue()
 	if power_state == "charge" or power_state == "charge_windup":
 		power_state = ""
-		power_cd_until = mt.time + Tuning.CHARGE_COOLDOWN * 0.5
+		power_cd_until = mt.time + _cdm() * Tuning.CHARGE_COOLDOWN * 0.5
 	if stalking():
 		end_stalk()
 	atk_state = ""
@@ -272,11 +279,11 @@ func _resolve_attack() -> void:
 		var res := best.take_hit(self)
 		if res == "parried":
 			mt.on_parry(best, self)
-			atk_t = Tuning.ATTACK_RECOVER_MISS
+			atk_t = (Tuning.ATTACK_RECOVER_MISS) * maxf(0.5, 1.0 - meta("k_recover"))
 		else:
 			mt.on_hit(best, self, res)
 			last_hit_time = mt.time
-			atk_t = Tuning.ELITE_RECOVER_HIT if elite else Tuning.ATTACK_RECOVER_HIT
+			atk_t = (Tuning.ELITE_RECOVER_HIT if elite else Tuning.ATTACK_RECOVER_HIT) * maxf(0.5, 1.0 - meta("k_recover"))
 			if perk("Bully") > 0:
 				best.slow_until = mt.time + 1.5 * perk("Bully")
 		return
@@ -286,7 +293,7 @@ func _resolve_attack() -> void:
 	var dmg := Tuning.KILLER_STRUCT_DPS * (Tuning.ATTACK_WINDUP + Tuning.ATTACK_RECOVER_MISS) * mult
 	if not mt.damage_in_front(self, dmg):
 		mt.make_noise(pos, 6.0, "swing", self)
-	atk_t = Tuning.ATTACK_RECOVER_MISS
+	atk_t = (Tuning.ATTACK_RECOVER_MISS) * maxf(0.5, 1.0 - meta("k_recover"))
 
 
 func _try_power() -> void:
@@ -301,7 +308,7 @@ func _try_power() -> void:
 	match ktype:
 		Defs.K.TRACKER:
 			power_state = "stalk"
-			power_t = Tuning.STALK_TIME * power_mult()
+			power_t = Tuning.STALK_TIME * power_mult() * (1.0 + meta("stalk"))
 			mt.on_stalk(self, true)
 		Defs.K.BRUTE:
 			power_state = "charge_windup"
@@ -319,7 +326,7 @@ func _try_power() -> void:
 func end_stalk() -> void:
 	if power_state == "stalk":
 		power_state = ""
-		power_cd_until = mt.time + Tuning.STALK_COOLDOWN
+		power_cd_until = mt.time + _cdm() * Tuning.STALK_COOLDOWN
 		mt.on_stalk(self, false)
 
 
@@ -347,7 +354,7 @@ func _tick_power(dt: float) -> void:
 				charge_dir = charge_dir.rotated(clampf(ang, -maxr, maxr))
 			facing = Actor.yaw_of(charge_dir)
 			var before := pos
-			move_by(charge_dir * Tuning.CHARGE_SPEED * dt)
+			move_by(charge_dir * Tuning.CHARGE_SPEED * (1.0 + meta("charge")) * dt)
 			moved = pos.distance_to(before)
 			# survivors in the way
 			for s in mt.living_survivors():
@@ -363,7 +370,7 @@ func _tick_power(dt: float) -> void:
 					s.move_by((side * 0.6 + charge_dir * 0.8).normalized() * 1.6)
 					charge_hit = true
 					power_state = ""
-					power_cd_until = mt.time + Tuning.CHARGE_COOLDOWN
+					power_cd_until = mt.time + _cdm() * Tuning.CHARGE_COOLDOWN
 					atk_state = "recover"
 					atk_t = Tuning.CHARGE_HIT_RECOVER
 					return
@@ -376,25 +383,25 @@ func _tick_power(dt: float) -> void:
 					stun(Tuning.CHARGE_METAL_STUN, "metal")
 					mt.make_noise(pos, 20.0, "clang", self)
 					power_state = ""
-					power_cd_until = mt.time + Tuning.CHARGE_COOLDOWN
+					power_cd_until = mt.time + _cdm() * Tuning.CHARGE_COOLDOWN
 					return
 				st.damage(9999.0, self)
 				mt.make_noise(pos, 22.0, "smash", self)
 			elif moved < Tuning.CHARGE_SPEED * dt * 0.3:
 				# rammed a solid wall
 				power_state = ""
-				power_cd_until = mt.time + Tuning.CHARGE_COOLDOWN
+				power_cd_until = mt.time + _cdm() * Tuning.CHARGE_COOLDOWN
 				stun(Tuning.CHARGE_MISS_STUN, "miss")
 				mt.make_noise(pos, 18.0, "thud", self)
 				return
 			if power_t <= 0.0:
 				power_state = ""
-				power_cd_until = mt.time + Tuning.CHARGE_COOLDOWN
+				power_cd_until = mt.time + _cdm() * Tuning.CHARGE_COOLDOWN
 				if not charge_hit:
 					stun(Tuning.CHARGE_MISS_STUN, "miss")
 		"tongue_fly":
 			var step := Tuning.TONGUE_SPEED * dt
-			var range_m = Tuning.TONGUE_RANGE * (0.5 if elite else 1.0)
+			var range_m = Tuning.TONGUE_RANGE * (0.5 if elite else 1.0) * (1.0 + meta("tongue"))
 			var next := tongue_tip + tongue_dir * step
 			# wall?
 			var tl2 := MapData.tile_of(next)
@@ -472,7 +479,7 @@ func _end_tongue() -> void:
 	tongue_victim = null
 	constrict_t = -1.0
 	power_state = ""
-	power_cd_until = mt.time + Tuning.TONGUE_COOLDOWN * (1.0 if is_main() else 2.0)
+	power_cd_until = mt.time + _cdm() * Tuning.TONGUE_COOLDOWN * (1.0 if is_main() else 2.0)
 	if tongue_mesh:
 		tongue_mesh.visible = false
 
@@ -512,7 +519,7 @@ func _tick_fatigue(dt: float) -> void:
 			break
 	if chasing:
 		chase_t += dt
-		if chase_t >= Tuning.TIRE_AFTER:
+		if chase_t >= Tuning.TIRE_AFTER + meta("k_fatigue"):
 			chase_t = 0.0
 			tired_until = mt.time + Tuning.TIRE_TIME
 			mt.make_noise(pos, 12.0, "pant", self)

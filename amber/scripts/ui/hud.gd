@@ -1,6 +1,6 @@
 class_name Hud
 extends CanvasLayer
-## In-match interface: prompts, status, radio checklist, feed, map, shop, build,
+## In-match interface: prompts, status, radio checklist, feed, map, build,
 ## elite choices, pause menu and results.
 
 signal quit_to_menu
@@ -28,9 +28,6 @@ var flash: ColorRect
 var hurt: ColorRect
 var map_layer: Control
 var map_view: MapView
-var shop_panel: PanelContainer
-var shop_list: VBoxContainer
-var shop_term: Dictionary = {}
 var build_panel: PanelContainer
 var build_text: RichTextLabel
 var choice_panel: PanelContainer
@@ -231,16 +228,6 @@ void fragment() {
 	map_view = MapView.new()
 	map_view.setup(mt, self)
 	map_layer.add_child(map_view)
-	# shop
-	shop_panel = _panel(0.92)
-	shop_panel.set_anchors_preset(Control.PRESET_CENTER)
-	shop_panel.position = Vector2(-280, -230)
-	shop_panel.custom_minimum_size = Vector2(560, 0)
-	shop_panel.visible = false
-	root.add_child(shop_panel)
-	shop_list = VBoxContainer.new()
-	shop_list.add_theme_constant_override("separation", 8)
-	shop_panel.add_child(shop_list)
 	# build
 	build_panel = _panel(0.7)
 	build_panel.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
@@ -307,7 +294,7 @@ void fragment() {
 
 
 const HELP_TEXT := """[b][color=#ffb347]SURVIVOR[/color][/b]  WASD move · Shift run (noisy) · Ctrl/C crouch (quiet, harder to see) · E interact (hold) · RMB perfect parry (time it as a swing lands)
-LMB use tool · 1 flare gun · 2 snare · 3 flash trap · Q role ability · F flashlight · B build mode · L lockdown · G give $25 to the poorest duo · V third/first person · X swap shoulder · Tab map
+LMB use tool · 1 flare gun · 2 snare · 3 flash trap · 4 medkit · 5 part scanner (items come from your loadout) · Q role ability · F flashlight · B build mode · L lockdown · G give $25 to the poorest duo · V third/first person · X swap shoulder · Tab map
 Goal: escape your cell, set up a base (hold E on open ground), find radio parts, build Antenna → Generator → Transmitter, call the helicopter and board it together.
 Two hits put you down. Crawl home for 2 extra minutes; only a cure or your Medic partner can save you, or you turn.
 
@@ -351,11 +338,7 @@ func _update_clock() -> void:
 	if t < Tuning.KILLER_RELEASE:
 		txt += "   ·   killers released in %ds" % int(Tuning.KILLER_RELEASE - t)
 	elif not mt.final_push:
-		var sto := mt.shop.time_to_open()
-		if not mt.shop.open_terminals().is_empty():
-			txt += "   ·   SHOPS OPEN"
-		else:
-			txt += "   ·   shops open in %s" % Match.fmt_time(sto)
+		txt += "   ·   final push in %s" % Match.fmt_time(maxf(0.0, Tuning.FINAL_PUSH_AT - t))
 	else:
 		txt += "   ·   FINAL PUSH — purge in %s" % Match.fmt_time(maxf(0.0, Tuning.PURGE_AT - t))
 	if mt.blackout():
@@ -402,7 +385,7 @@ func _update_status() -> void:
 			Defs.Role.TRAPPER: abil = "Q drop trap"
 		var cd := s2.ability_cd_until - mt.time
 		abil += " (%ds)" % int(cd) if cd > 0.0 else " (ready)"
-		var tl := ["Flare x%d" % s2.flare, "Snare x%d" % s2.traps[0], "Flash x%d" % s2.traps[1]]
+		var tl := ["1 Flare x%d" % s2.flare, "2 Snare x%d" % s2.traps[0], "3 Flash x%d" % s2.traps[1], "4 Medkit x%d" % s2.medkit, "5 Scanner x%d" % s2.scanner]
 		tl[pc.tool] = "▶ " + tl[pc.tool]
 		var parry := "RMB parry" + (" (…)" if mt.time < s2.parry_cd_until else "")
 		tools.text = "Carrying: %s\n%s   ·   Cure x%d\n%s   ·   %s   ·   B build" % [", ".join(parts) if not parts.is_empty() else "—", "   ".join(tl), s2.cure, abil, parry]
@@ -527,7 +510,7 @@ func _update_duo() -> void:
 				var parts: Array = []
 				for p in Defs.STAGE_PARTS[i]:
 					parts.append(_part_state(d, p))
-				t += "[b]%d %s[/b] ($%d%s): %s\n" % [i + 1, nm, Tuning.STAGE_COST[i], ", paid" if b.paid else "", ", ".join(parts)]
+				t += "[b]%d %s[/b]: %s\n" % [i + 1, nm, ", ".join(parts)]
 				if b.progress > 0.0:
 					t += "   building… %d%%\n" % int(b.progress / Tuning.STAGE_BUILD_TIME[i] * 100.0)
 			else:
@@ -693,46 +676,6 @@ func _set_block(on: bool) -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if on else Input.MOUSE_MODE_CAPTURED
 
 
-func open_shop(t: Dictionary) -> void:
-	shop_term = t
-	_fill_shop()
-	shop_panel.visible = true
-	_set_block(true)
-
-
-func _fill_shop() -> void:
-	for c in shop_list.get_children():
-		c.queue_free()
-	var s := pc.actor as Survivor
-	if s == null:
-		return
-	var title := _label(26, Color(1.0, 0.72, 0.25))
-	title.text = "Company supply terminal   ·   $%d" % s.duo.money
-	shop_list.add_child(title)
-	for id in ["cure", "medkit", "traps", "scrap", "scanner"]:
-		var item: Dictionary = Tuning.SHOP_ITEMS[id]
-		var why := mt.shop.why_not(s, id)
-		var extra := ""
-		if id == "cure":
-			extra = "  [%d left]" % mt.shop.cure_stock
-		var b := _button("%s — $%d%s" % [item["name"], item["cost"], extra], func():
-			var e := mt.shop.buy(s, id)
-			toast(e if e != "" else "Bought: %s" % item["name"])
-			_fill_shop())
-		b.disabled = why != ""
-		b.tooltip_text = item["desc"]
-		shop_list.add_child(b)
-		var d := _label(14, Color(0.7, 0.68, 0.62))
-		d.text = item["desc"] + ("   (" + why + ")" if why != "" else "")
-		shop_list.add_child(d)
-	shop_list.add_child(_button("Close", func(): close_shop()))
-
-
-func close_shop() -> void:
-	shop_panel.visible = false
-	_set_block(false)
-
-
 func ask_elite_class(slot: Slot) -> void:
 	_choice("You were caught. Choose your elite class:", [0, 1, 2].map(func(i): return "Elite %s — %s" % [Defs.KILLER_NAMES[i], ["fast hunter (Speed, Senses, Pack)", "wall-breaker (Smash, Tank, Bully)", "ambusher (Vents, Traps, Disguise)"][i]]), func(i: int):
 		slot.ktype = i)
@@ -764,8 +707,6 @@ func _choice(title_text: String, options: Array, cb: Callable) -> void:
 func toggle_pause() -> void:
 	if results_panel.visible:
 		return
-	if shop_panel.visible:
-		close_shop()
 		return
 	if choice_panel.visible:
 		return
@@ -790,7 +731,6 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _on_over(r: Dictionary) -> void:
 	_set_block(true)
-	shop_panel.visible = false
 	choice_panel.visible = false
 	pause_panel.visible = false
 	for c in results_panel.get_children():
@@ -831,6 +771,24 @@ func _on_over(r: Dictionary) -> void:
 			txt += "%s duo · %s ([i]%s[/i]): [color=%s]%s[/color]%s  · earned $%d · parries %d%s\n" % [row["duo"], row["name"], Defs.ROLE_NAMES[row["role"]], col, oc, (" at " + Match.fmt_time(row["time"])) if row["outcome"] != "" else "", row["stats"]["earned"], row["stats"]["parries"], ("  · elite catches %d" % row["stats"]["elite_catches"]) if row["elite"] else ""]
 	rt.text = txt
 	v.add_child(rt)
+	if r.has("progress"):
+		var pr: Dictionary = r["progress"]
+		var pt := RichTextLabel.new()
+		pt.bbcode_enabled = true
+		pt.fit_content = true
+		pt.custom_minimum_size = Vector2(800, 10)
+		pt.add_theme_font_size_override("normal_font_size", 16)
+		var ptxt := "[center][color=#ffb347][b]+%d AMBER[/b][/color]   " % pr["total"]
+		var parts: Array = []
+		for l in pr["lines"]:
+			parts.append("%s +%d" % [l[0], l[1]])
+		ptxt += "[color=#cfc6b8]" + "  ·  ".join(parts) + "[/color]\n"
+		var lp := Progression.level_progress()
+		if pr["level_after"] > pr["level_before"]:
+			ptxt += "[color=#7dff8a][b]LEVEL UP: %d[/b]  (+%d Amber bonus)[/color]   " % [pr["level_after"], pr["bonus"]]
+		ptxt += "Level %d · %d / %d to the next · %d Amber to spend in the skill trees[/center]" % [lp[0], lp[1], lp[2], Progression.amber()]
+		pt.text = ptxt
+		v.add_child(pt)
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 12)
 	hb.alignment = BoxContainer.ALIGNMENT_CENTER

@@ -191,14 +191,25 @@ func _ui_demo() -> void:
 	_show_menu()
 	await get_tree().create_timer(1.0).timeout
 	await _snap("ui_0_menu")
+	# a profile a few matches in (demo only: test runs never save)
+	Progression.ensure()
+	Progression.profile["lifetime"] = 5200
+	Progression.profile["amber"] = 2350
+	for id in ["flare_gun", "phosphor", "medkit", "dressing", "scanner", "keen_eyes", "keen_eyes", "dressing"]:
+		Progression.profile["ranks"][id] = Progression.rank(id) + (1 if Progression.rank(id) < Progression.node_def(id)[3] else 0)
+	Progression.profile["loadout"] = ["flare", "medkit", ""]
+	menu._open_progression()
+	await get_tree().create_timer(0.6).timeout
+	await _snap("ui_0b_trees_kit")
+	menu.prog_menu._show_tree("brute")
+	await get_tree().create_timer(0.4).timeout
+	await _snap("ui_0c_trees_brute")
+	menu.prog_menu.closed.emit()
 	_start({"seed": 21, "side": Defs.Side.SURVIVOR, "role": Defs.Role.ENGINEER, "card": 1, "spectate": false})
 	var me := mt.player_slot.actor as Survivor
-	# skip ahead: out of the cell, with money and scrap, a base and an open shop
+	# skip ahead: out of the cell, with money and scrap, and a base
 	open_and_setup(me)
 	await get_tree().create_timer(1.5).timeout
-	hud.open_shop(mt.shop.terminals[0])
-	await _snap("ui_1_shop")
-	hud.close_shop()
 	pc.build_mode = true
 	pc.pitch = -0.6
 	await get_tree().create_timer(0.5).timeout
@@ -231,9 +242,6 @@ func open_and_setup(me: Survivor) -> void:
 	if stand.x >= 0:
 		me.pos = MapData.center_of(stand)
 	pc.yaw = Actor.yaw_of(me.duo.base.pos - me.pos) if me.duo.base else 0.0
-	for t in mt.shop.terminals:
-		t["open"] = true
-		mt.shop._paint(t)
 
 
 func _tap(action: String, frames: int = 2) -> void:

@@ -286,10 +286,6 @@ func _decide() -> void:
 			if s.cure > 0 and (_safe_near(partner.pos, 5.0) or skill > 0.6):
 				_goal("cure", partner.pos, null, "cure", partner)
 				return
-			var t := _shop_target()
-			if not t.is_empty() and mt.shop.why_not(s, "cure") == "" and s.duo.money >= Tuning.CURE_COST:
-				_goal("shop", t["pos"], null, "shop", t)
-				return
 		if partner.health == Defs.Health.WOUNDED and s.health != Defs.Health.DOWNED and pd < 12.0 and threat == null and partner.channel.is_empty():
 			if partner.pos.distance_to(s.pos) < 12.0 and (partner.duo.base == null or not partner.duo.base.heli_called):
 				_goal("heal", partner.pos, null, "heal", partner)
@@ -307,16 +303,9 @@ func _decide() -> void:
 		if site.x < INF:
 			_goal("claim", site, null, "claim", null)
 			return
-	# shopping
-	var st2 := _shop_target()
-	if not st2.is_empty() and _wants_shop():
-		_goal("shop", st2["pos"], null, "shop", st2)
-		return
-	# grab a flare gun if one is close
-	var fl := _nearest_known(Defs.Item.FLARE, -1, 30.0)
-	if fl != null and s.flare == 0:
-		_goal("fetch", fl.pos, fl, "pickup", fl)
-		return
+	# carried medkit: patch up when wounded and nobody is chasing
+	if s.health == Defs.Health.WOUNDED and s.medkit > 0 and threat == null:
+		mt.use_medkit(s)
 	if b == null:
 		_goal("explore", s.pos)
 		return
@@ -325,7 +314,7 @@ func _decide() -> void:
 		_goal("deliver", b.pos)
 		return
 	if b.broken:
-		var cost = int((b.next_cost() if b.stage < 3 else Tuning.STAGE_COST[2]) * Tuning.REPAIR_COST_FRAC)
+		var cost = b.repair_cost()
 		if s.duo.money >= cost:
 			_goal("repair", b.pos, null, "repair", b)
 			return
@@ -561,46 +550,6 @@ func _base_site() -> Vector2:
 	if best.x < INF:
 		base_plans[s.duo.id] = best
 	return best
-
-
-func _shop_target() -> Dictionary:
-	var best: Dictionary = {}
-	var bd := 70.0
-	for t in mt.shop.open_terminals():
-		var d: float = t["pos"].distance_to(s.pos)
-		if d < bd:
-			bd = d
-			best = t
-	return best
-
-
-func _wants_shop() -> bool:
-	if s.health == Defs.Health.WOUNDED and mt.shop.why_not(s, "medkit") == "" and s.role != Defs.Role.MEDIC:
-		return true
-	if s.role == Defs.Role.TRAPPER and s.traps[0] + s.traps[1] < 2 and mt.shop.why_not(s, "traps") == "":
-		return true
-	var b := s.duo.base
-	if b != null and b.stage >= 1 and s.cure == 0 and mt.shop.why_not(s, "cure") == "" and s.duo.money >= Tuning.CURE_COST + (b.next_cost() if not b.paid else 0):
-		return true
-	return false
-
-
-func shop_visit(t: Dictionary) -> void:
-	var p := _partner()
-	if p != null and p.is_downed() and s.cure == 0:
-		mt.shop.buy(s, "cure")
-	if s.health == Defs.Health.WOUNDED and s.role != Defs.Role.MEDIC:
-		mt.shop.buy(s, "medkit")
-	if s.role == Defs.Role.TRAPPER:
-		mt.shop.buy(s, "traps")
-	var b := s.duo.base
-	var reserve := (b.next_cost() if b != null and not b.paid else 0)
-	if s.cure == 0 and s.duo.money - reserve >= Tuning.CURE_COST:
-		mt.shop.buy(s, "cure")
-	if s.duo.money - reserve > 60 and mt.rng.randf() < 0.5:
-		mt.shop.buy(s, "scanner")
-	if s.duo.scrap < 3 and s.duo.money - reserve > 50:
-		mt.shop.buy(s, "scrap")
 
 
 func _steal_target(need: Array) -> Base:

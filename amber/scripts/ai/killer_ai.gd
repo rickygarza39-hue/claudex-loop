@@ -321,9 +321,6 @@ func _patrol_point() -> Vector2:
 			if not c["open"]:
 				opts.append(MapData.center_of(c["door"]))
 				w.append(2.0)
-	for t in mt.shop.open_terminals():
-		opts.append(t["pos"])
-		w.append(3.0)
 	for hz in mt.hotzones:
 		opts.append(hz["pos"])
 		w.append(1.0)

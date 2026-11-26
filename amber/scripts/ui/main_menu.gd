@@ -21,6 +21,8 @@ var role_buttons: Array = []
 var killer_buttons: Array = []
 var card_buttons: Array = []
 var side_buttons: Array = []
+var prog_button: Button
+var prog_menu: ProgressionMenu
 
 
 func _ready() -> void:
@@ -159,6 +161,12 @@ void fragment() {
 		diff_buttons.append(db)
 		drow.add_child(db)
 	_set_diff(1)
+	prog_button = Button.new()
+	prog_button.custom_minimum_size = Vector2(0, 46)
+	prog_button.add_theme_font_size_override("font_size", 19)
+	prog_button.pressed.connect(_open_progression)
+	col.add_child(prog_button)
+	_update_prog_button()
 	var go := Button.new()
 	go.text = "ENTER THE QUARANTINE ZONE"
 	go.custom_minimum_size = Vector2(0, 56)
@@ -176,6 +184,24 @@ void fragment() {
 	_set_role(Defs.Role.ENGINEER)
 	_set_killer(Defs.K.TRACKER)
 	_set_card(Defs.Card.PULSE)
+
+
+func _update_prog_button() -> void:
+	var lp := Progression.level_progress()
+	var lo := Progression.loadout()
+	var names: Array = []
+	for it in lo:
+		names.append(Progression.ITEMS[it]["name"])
+	prog_button.text = "SKILL TREES & LOADOUT   ·   Level %d   ·   %d Amber   ·   Loadout: %s" % [lp[0], Progression.amber(), ", ".join(names) if not names.is_empty() else "empty"]
+
+
+func _open_progression() -> void:
+	prog_menu = ProgressionMenu.new()
+	add_child(prog_menu)
+	prog_menu.closed.connect(func():
+		prog_menu.queue_free()
+		prog_menu = null
+		_update_prog_button())
 
 
 func _lbl(t: String, size: int, c: Color = Color(0.9, 0.88, 0.82)) -> Label:

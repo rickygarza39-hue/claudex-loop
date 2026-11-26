@@ -35,7 +35,7 @@ func _survivor_options(s: Survivor) -> Array:
 		return out
 	if s.is_downed():
 		if s.cure > 0:
-			out.append(_opt("cure", "Use your cure on yourself", s.pos, Tuning.CURE_USE_TIME, s, "", 10))
+			out.append(_opt("cure", "Use your cure on yourself", s.pos, Tuning.CURE_USE_TIME / (1.0 + s.meta("heal")), s, "", 10))
 		return out
 	if s.pinned_by != null or tm < s.dazed_until:
 		return out
@@ -59,11 +59,6 @@ func _survivor_options(s: Survivor) -> Array:
 					out.append(_opt("lever", "Hold the lever (both levers together)", lp, 9999.0, {"cell": c, "lever": li}, "", 9))
 		elif s.pos.distance_to(door_c) < 2.3:
 			out.append(_opt("cell", "Pick the cell lock", door_c, 9999.0, c, "", 9))
-	# shop terminals
-	for term in mt.shop.terminals:
-		if s.pos.distance_to(term["pos"]) < 2.4:
-			var open: bool = term["open"]
-			out.append(_opt("shop", "Use the supply terminal", term["pos"], 0.0, term, "" if open else "Terminal closed — opens every 5 minutes", 6))
 	# own base
 	var b := s.duo.base
 	if b == null:
@@ -73,7 +68,7 @@ func _survivor_options(s: Survivor) -> Array:
 		var d := s.pos.distance_to(b.pos)
 		if d < REACH + 0.4:
 			if b.broken:
-				var cost := int(b.next_cost() * Tuning.REPAIR_COST_FRAC) if b.stage < 3 else int(Tuning.STAGE_COST[2] * Tuning.REPAIR_COST_FRAC)
+				var cost := b.repair_cost()
 				var blocked2 := "" if s.duo.money >= cost else "Need $%d to repair" % cost
 				out.append(_opt("repair", "Repair the station ($%d)" % cost, b.pos, Tuning.REPAIR_TIME / mt.build_mult(s), b, blocked2, 8))
 			elif b.stage < 3:
@@ -89,7 +84,7 @@ func _survivor_options(s: Survivor) -> Array:
 				elif mt.jammed():
 					blocked3 = "Signal jammed!"
 				var lbl := "Build the %s" % Defs.STAGE_NAMES[b.stage]
-				if not b.paid:
+				if not b.paid and b.next_cost() > 0:
 					lbl += " ($%d)" % b.next_cost()
 				out.append(_opt("build", lbl, b.pos, Tuning.STAGE_BUILD_TIME[b.stage] / mt.build_mult(s), b, blocked3, 8))
 			elif not b.heli_called or (b.heli != null and b.heli.state == "gone" and s.duo.active()):
@@ -117,16 +112,16 @@ func _survivor_options(s: Survivor) -> Array:
 			continue
 		if o.is_downed():
 			if s.role == Defs.Role.MEDIC and o.duo == s.duo and not s.revive_used:
-				out.append(_opt("revive", "Revive your partner (once per match)", o.pos, Tuning.REVIVE_TIME, o, "", 12))
+				out.append(_opt("revive", "Revive your partner (once per match)", o.pos, Tuning.REVIVE_TIME / (1.0 + s.meta("heal")), o, "", 12))
 			if s.cure > 0:
-				out.append(_opt("cure", "Use your cure on %s" % o.slot.name, o.pos, Tuning.CURE_USE_TIME, o, "", 11))
+				out.append(_opt("cure", "Use your cure on %s" % o.slot.name, o.pos, Tuning.CURE_USE_TIME / (1.0 + s.meta("heal")), o, "", 11))
 			elif o.duo == s.duo:
 				out.append(_opt("none", "Partner downed — needs a cure or a Medic", o.pos, 0.0, o, "No cure", 0))
 		elif o.health == Defs.Health.WOUNDED and o.channel.is_empty():
 			var ht := Tuning.MEDIC_HEAL_TIME if s.role == Defs.Role.MEDIC else Tuning.HEAL_TIME
-			out.append(_opt("heal", "Heal %s" % o.slot.name, o.pos, ht, o, "", 7))
+			out.append(_opt("heal", "Heal %s" % o.slot.name, o.pos, ht / (1.0 + s.meta("heal")), o, "", 7))
 	if s.role == Defs.Role.MEDIC and s.health == Defs.Health.WOUNDED:
-		out.append(_opt("self_heal", "Patch yourself up", s.pos, Tuning.MEDIC_SELF_HEAL_TIME, s, "", 1))
+		out.append(_opt("self_heal", "Patch yourself up", s.pos, Tuning.MEDIC_SELF_HEAL_TIME / (1.0 + s.meta("heal")), s, "", 1))
 	# lockers
 	for st in mt.structures_near(s.pos, 1.8):
 		if st.kind == Defs.B.LOCKER and st.occupant == null:
@@ -145,7 +140,7 @@ func _killer_options(k: Killer) -> Array:
 				blocked = "Only main killers can catch"
 			if k.husk:
 				blocked = "Husks can't catch"
-			out.append(_opt("catch", "Catch %s" % s.slot.name, s.pos, Tuning.CATCH_TIME, s, blocked, 10))
+			out.append(_opt("catch", "Catch %s" % s.slot.name, s.pos, Tuning.CATCH_TIME / (1.0 + k.meta("k_catch")), s, blocked, 10))
 	var here := MapData.tile_of(k.pos)
 	for dy in range(-1, 2):
 		for dx in range(-1, 2):
@@ -230,7 +225,7 @@ func hold(a: Actor, dt: float) -> void:
 	match ch["id"]:
 		"cell":
 			var c: Dictionary = ch["target"]
-			c["progress"] += dt
+			c["progress"] += dt * (1.0 + a.meta("pick"))
 			mt.make_noise(a.pos, 8.0, "lock", a, 0.6)
 			if c["progress"] >= Tuning.CELL_PICK_TIME:
 				mt.open_cell(c)
@@ -335,8 +330,6 @@ func _finish(a: Actor, o: Dictionary) -> void:
 				v.release_pin()
 				lk.power_cd_until = mt.time + Tuning.TONGUE_COOLDOWN
 				mt.reward((a as Survivor).duo, Tuning.REWARD_SAVE, "broke a tongue", a.slot)
-		"shop":
-			mt.shop.use(a as Survivor, tgt)
 		"steal":
 			mt.bases.steal(a as Survivor, tgt)
 		"hide":

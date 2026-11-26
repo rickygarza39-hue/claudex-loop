@@ -247,6 +247,10 @@ func _survivor_actions(s: Survivor) -> void:
 		tool = 1
 	if Input.is_action_just_pressed("tool_3"):
 		tool = 2
+	if Input.is_action_just_pressed("tool_4"):
+		tool = 3
+	if Input.is_action_just_pressed("tool_5"):
+		tool = 4
 	if Input.is_action_just_pressed("build"):
 		build_mode = not build_mode
 	if build_mode:
@@ -255,7 +259,7 @@ func _survivor_actions(s: Survivor) -> void:
 	if not s.can_act():
 		return
 	if Input.is_action_just_pressed("alt") and mt.time >= s.parry_cd_until:
-		s.parry_until = mt.time + Tuning.PARRY_WINDOW
+		s.parry_until = mt.time + Tuning.PARRY_WINDOW + s.meta("parry")
 		s.parry_cd_until = mt.time + Tuning.PARRY_COOLDOWN
 		if mt.hud:
 			mt.hud.on_parry_pressed()
@@ -265,10 +269,18 @@ func _survivor_actions(s: Survivor) -> void:
 				if s.flare > 0:
 					mt.use_flare(s)
 				else:
-					mt.hud.toast("No flare gun. Four are hidden on the map (shown on your map, Tab).")
+					mt.hud.toast("No flare shots left. Unlock the flare gun in the Survivor Kit tree and put it in your loadout.")
 			1, 2:
 				if not mt.place_trap(s, tool - 1):
 					mt.hud.toast("No %s to place." % Defs.TRAP_NAMES[tool - 1].to_lower())
+			3:
+				if s.medkit <= 0:
+					mt.hud.toast("No medkit. Equip one in your loadout before the match.")
+				elif not mt.use_medkit(s):
+					mt.hud.toast("You're not wounded.")
+			4:
+				if not mt.use_scanner(s):
+					mt.hud.toast("No part scanner. Equip one in your loadout before the match.")
 	if Input.is_action_just_pressed("ability"):
 		match s.role:
 			Defs.Role.ENGINEER:
@@ -280,7 +292,7 @@ func _survivor_actions(s: Survivor) -> void:
 			Defs.Role.TRAPPER:
 				var which := 0 if s.traps[0] > 0 else 1
 				if not mt.place_trap(s, which):
-					mt.hud.toast("No traps left. Buy a trap kit at a terminal.")
+					mt.hud.toast("No traps left.")
 	if Input.is_action_just_pressed("lockdown"):
 		if s.duo.base == null:
 			mt.hud.toast("You need a base first.")

@@ -16,6 +16,8 @@ var parts: Array = []
 var flare := 0
 var traps := [0, 0]
 var cure := 0
+var medkit := 0
+var scanner := 0
 var revive_used := false
 var ability_cd_until := 0.0
 var hidden_in: Structure = null
@@ -90,6 +92,10 @@ func move_speed() -> float:
 		s *= Tuning.WATER_MULT
 	if mt.time < slow_until:
 		s *= 0.75
+	if health == Defs.Health.DOWNED:
+		s *= 1.0 + meta("crawl")
+	else:
+		s *= 1.0 + meta("move")
 	return s
 
 
@@ -98,7 +104,7 @@ func carry_space() -> int:
 
 
 func trap_capacity() -> int:
-	return Tuning.TRAP_CAPACITY[role]
+	return Tuning.TRAP_CAPACITY[role] + int(meta("trap_cap"))
 
 
 func masked() -> bool:
@@ -128,7 +134,7 @@ func take_hit(by: Killer, unparryable: bool = false, instant_down: bool = false)
 
 func go_down(by: Killer) -> void:
 	health = Defs.Health.DOWNED
-	turn_left = Tuning.TURN_TIME
+	turn_left = Tuning.TURN_TIME + meta("turn")
 	base_bonus_given = false
 	downed_by = by
 	boost_until = -1.0
@@ -212,7 +218,7 @@ func _post_move(dt: float) -> void:
 			mt.add_trail(pos, self, true)
 	if want_run and not want_crouch and health == Defs.Health.HEALTHY and noise_cd <= 0.0 and moved > 0.03:
 		noise_cd = 0.6
-		mt.make_noise(pos, Tuning.NOISE_RUN, "steps", self)
+		mt.make_noise(pos, Tuning.NOISE_RUN * maxf(0.4, 1.0 - meta("quiet")), "steps", self)
 
 
 func status_text() -> String:

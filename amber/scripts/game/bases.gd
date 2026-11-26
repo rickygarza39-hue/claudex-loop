@@ -117,7 +117,7 @@ func complete_stage(b: Base, by: Actor) -> void:
 func damage_station(b: Base, amount: float, by: Killer) -> void:
 	if b.stage == 0 or b.broken or mt.time < b.lockdown_until:
 		return
-	b.hp -= amount
+	b.hp -= amount * (1.0 + (by.meta("k_smash") if by != null else 0.0))
 	b.last_damage_time = mt.time
 	b.reveal_until = maxf(b.reveal_until, mt.time + 20.0)
 	mt.nest.add(amount * Tuning.NEST_STATION_DAMAGE, "base damage")
@@ -133,7 +133,7 @@ func damage_station(b: Base, amount: float, by: Killer) -> void:
 
 
 func finish_repair(b: Base, by: Actor) -> void:
-	var cost := int((b.next_cost() if b.stage < 3 else Tuning.STAGE_COST[2]) * Tuning.REPAIR_COST_FRAC)
+	var cost := b.repair_cost()
 	b.duo.money = maxi(0, b.duo.money - cost)
 	b.broken = false
 	b.hp = Tuning.STATION_HP
@@ -346,7 +346,7 @@ func quick_barricade(s: Survivor) -> bool:
 	st.setup(mt, Defs.B.BARRICADE, tl, null, s.duo)
 	st.expires = mt.time + Tuning.BARRICADE_LIFETIME
 	mt.add_structure(st)
-	s.ability_cd_until = mt.time + Tuning.ENGINEER_BARRICADE_COOLDOWN
+	s.ability_cd_until = mt.time + Tuning.ENGINEER_BARRICADE_COOLDOWN * (1.0 - s.meta("ability_cd"))
 	mt.make_noise(s.pos, 14.0, "build", s)
 	return true
 

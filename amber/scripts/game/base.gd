@@ -74,6 +74,10 @@ func all_missing() -> Array:
 	return out
 
 
+func repair_cost() -> int:
+	return Tuning.REPAIR_COST[clampi(stage - 1, 0, 2)]
+
+
 func next_cost() -> int:
 	if stage >= 3:
 		return 0

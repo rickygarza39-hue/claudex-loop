@@ -93,12 +93,6 @@ func _draw() -> void:
 	# the Nest
 	_txt(w2s(MapData.center_of(m.nest)) + Vector2(0, -8), "THE NEST", Defs.AMBER, 13)
 	draw_circle(w2s(MapData.center_of(m.nest)), cell * 1.4, Color(1.0, 0.55, 0.1, 0.7))
-	# terminals
-	for t in mt.shop.terminals:
-		var col := Color(0.4, 1.0, 0.5) if t["open"] else (Color(1.0, 0.85, 0.3) if t["next"] else Color(0.6, 0.6, 0.6))
-		var p: Vector2 = w2s(t["pos"])
-		draw_rect(Rect2(p - Vector2(5, 5), Vector2(10, 10)), col)
-		_txt(p + Vector2(0, -8), "SHOP" + (" OPEN" if t["open"] else (" SOON" if t["next"] else "")), col, 11)
 	# quarantine cells
 	for c in mt.cells:
 		if not c["open"]:

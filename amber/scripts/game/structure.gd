@@ -119,7 +119,7 @@ func invulnerable() -> bool:
 func damage(amount: float, by: Killer) -> void:
 	if invulnerable() or kind == Defs.B.HATCH:
 		return
-	hp -= amount
+	hp -= amount * (1.0 + (by.meta("k_smash") if by != null else 0.0))
 	if spiked and by != null and kind == Defs.B.WALL:
 		by.stun(Tuning.SPIKE_STUN, "spikes")
 	mt.make_noise(pos, 18.0, "smash", by)
