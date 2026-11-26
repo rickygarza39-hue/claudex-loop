@@ -309,6 +309,27 @@ static func flat(color: Color, emission: float = 0.0, rough: float = 0.8, metal:
 	return m
 
 
+## Organic surface for characters: blotchy albedo, pores and wrinkles in the normal map,
+## uneven sheen. Object-space triplanar so the detail stays put as the body moves.
+static func organic(color: Color, rough: float = 0.6, bump: float = 4.0, freq: float = 0.09, blotch: float = 0.25) -> StandardMaterial3D:
+	var key := "organic_%s_%.2f_%.1f_%.3f_%.2f" % [color.to_html(), rough, bump, freq, blotch]
+	if _cache.has(key):
+		return _cache[key]
+	var m := StandardMaterial3D.new()
+	m.albedo_texture = _noise_tex(freq * 0.5, [color.darkened(blotch), color, color.lightened(blotch * 0.4)], FastNoiseLite.TYPE_SIMPLEX_SMOOTH, 3, 256)
+	m.normal_enabled = true
+	m.normal_texture = _noise_tex(freq * 2.5, [], FastNoiseLite.TYPE_CELLULAR, 3, 256, true, bump)
+	m.normal_scale = 0.8
+	m.roughness = rough
+	m.roughness_texture = _noise_tex(freq * 1.3, [Color(0.6, 0.6, 0.6), Color(1, 1, 1)], FastNoiseLite.TYPE_SIMPLEX_SMOOTH, 2, 128)
+	m.uv1_triplanar = true
+	m.uv1_world_triplanar = false
+	m.uv1_scale = Vector3.ONE * 6.0
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	_cache[key] = m
+	return m
+
+
 static func floor_key(st: int) -> String:
 	match st:
 		Defs.S.DIRT: return "dirt"

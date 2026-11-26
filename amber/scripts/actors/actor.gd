@@ -447,6 +447,17 @@ func _animate_rig(dt: float, sf: float, state: String) -> void:
 		pitch = -0.35
 	_jr("Head", Vector3(pitch + sin(ph * 2.0) * 0.03 * amp, 0, 0))
 	_jr("Neck", Vector3(-run * 0.1, 0, 0))
+	if self is Killer:
+		# wrong, twitchy movement: the head snaps sideways at random, the hands tremble
+		var beat := tm * 1.6 + float(get_instance_id() % 13)
+		var h := fposmod(sin(floorf(beat) * 12.9898) * 43758.5453, 1.0) * 2.0 - 1.0
+		if absf(h) > 0.45 and fposmod(beat, 1.0) < 0.14:
+			_jr("Head", Vector3(pitch + h * 0.35, h * 0.8, h * 0.7))
+		else:
+			_jr("Head", Vector3(pitch, sin(tm * 0.7) * 0.15, sin(tm * 0.9 + 1.0) * 0.12))
+		var tremble := sin(tm * 31.0) * 0.04
+		_jr("HandL", Vector3(tremble, 0, tremble))
+		_jr("HandR", Vector3(-tremble, 0, tremble))
 
 
 func _find_anim_player(n: Node) -> AnimationPlayer:
