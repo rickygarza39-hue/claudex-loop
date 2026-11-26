@@ -169,6 +169,106 @@ const TREES := {
 			["glutton", "Glutton", 4, 1, "k_recover", 0.20, "Recover from swings another {p} faster."],
 		]],
 	]},
+	"foreman": {"name": "The Foreman", "side": "killer", "branches": [
+		["Quarry", [
+			["heavy_swing", "Heavy Swing", 1, 3, "slam", 0.06, "Slam reaches {p} further."],
+			["shift_change", "Shift Change", 2, 3, "k_power", 0.08, "Slam cooldown {p} shorter."],
+			["cave_in", "Cave-in", 3, 3, "k_smash", 0.15, "Deal {p} more damage to walls and stations."],
+			["foremans_word", "The Foreman's Word", 4, 1, "slam", 0.15, "Slam reaches another {p} further."],
+		]],
+		["Overtime", [
+			["steel_toes", "Steel Toes", 1, 3, "k_move", 0.02, "Move {p} faster."],
+			["double_shift", "Double Shift", 2, 3, "k_fatigue", 4.0, "Tire {v} s later in a chase."],
+			["hardened", "Hardened", 3, 3, "k_stun", 0.08, "Stuns and knockdowns {p} shorter."],
+			["no_breaks", "No Breaks", 4, 1, "k_fatigue", 10.0, "Tire {v} s later in a chase."],
+		]],
+		["Discipline", [
+			["quick_hands", "Quick Hands", 1, 3, "k_recover", 0.08, "Recover from swings {p} faster."],
+			["haul", "Haul", 2, 3, "k_catch", 0.12, "Catch downed survivors {p} faster."],
+			["pick_master", "Pick Master", 3, 3, "k_recover", 0.06, "Recover from swings another {p} faster."],
+			["layoffs", "Layoffs", 4, 1, "k_catch", 0.3, "Catch downed survivors another {p} faster."],
+		]],
+	]},
+	"hollow": {"name": "The Hollow", "side": "killer", "branches": [
+		["Crawl", [
+			["long_skitter", "Long Skitter", 1, 3, "skitter", 0.1, "Skitter lasts {p} longer."],
+			["restless_limbs", "Restless Limbs", 2, 3, "k_power", 0.08, "Skitter cooldown {p} shorter."],
+			["crawlspace_h", "Crawlspace", 3, 3, "k_squeeze", 0.15, "Crawl through crevices {p} faster."],
+			["endless", "Endless", 4, 1, "skitter", 0.3, "Skitter lasts another {p} longer."],
+		]],
+		["Hunger", [
+			["gape", "Gape", 1, 3, "k_catch", 0.12, "Catch downed survivors {p} faster."],
+			["rend", "Rend", 2, 3, "k_recover", 0.08, "Recover from swings {p} faster."],
+			["gorge_h", "Gorge", 3, 3, "k_catch", 0.1, "Catch downed survivors another {p} faster."],
+			["bottomless", "Bottomless", 4, 1, "k_recover", 0.2, "Recover from swings another {p} faster."],
+		]],
+		["Husk", [
+			["numb", "Numb", 1, 3, "k_stun", 0.08, "Stuns and knockdowns {p} shorter."],
+			["sinew", "Sinew", 2, 3, "k_move", 0.02, "Move {p} faster."],
+			["tireless_h", "Tireless", 3, 3, "k_fatigue", 4.0, "Tire {v} s later in a chase."],
+			["empty", "Empty", 4, 1, "k_stun", 0.2, "Stuns and knockdowns another {p} shorter."],
+		]],
+	]},
+	"furnace": {"name": "The Furnace", "side": "killer", "branches": [
+		["Blaze", [
+			["kindling", "Kindling", 1, 3, "fire", 0.1, "Firebreak burns {p} longer."],
+			["stoke", "Stoke", 2, 3, "k_power", 0.08, "Firebreak cooldown {p} shorter."],
+			["white_heat", "White Heat", 3, 3, "fire", 0.1, "Firebreak burns another {p} longer."],
+			["inferno", "Inferno", 4, 1, "k_power", 0.2, "Firebreak cooldown another {p} shorter."],
+		]],
+		["Slag", [
+			["molten", "Molten", 1, 3, "k_smash", 0.15, "Deal {p} more damage to walls and stations."],
+			["searing", "Searing", 2, 3, "k_recover", 0.08, "Recover from swings {p} faster."],
+			["brand", "Brand", 3, 3, "k_catch", 0.12, "Catch downed survivors {p} faster."],
+			["meltdown", "Meltdown", 4, 1, "k_smash", 0.35, "Deal another {p} damage to walls and stations."],
+		]],
+		["Cinder", [
+			["ash_skin", "Ash Skin", 1, 3, "k_stun", 0.08, "Stuns and knockdowns {p} shorter."],
+			["bellows", "Bellows", 2, 3, "k_fatigue", 4.0, "Tire {v} s later in a chase."],
+			["heat_wave", "Heat Wave", 3, 3, "k_move", 0.02, "Move {p} faster."],
+			["phoenix", "Phoenix", 4, 1, "k_stun", 0.2, "Stuns and knockdowns another {p} shorter."],
+		]],
+	]},
+	"tally": {"name": "The Tally Man", "side": "killer", "branches": [
+		["Count", [
+			["one_step", "One Step Further", 1, 3, "blink", 0.08, "Blink {p} further."],
+			["recount", "Recount", 2, 3, "k_power", 0.08, "Blink cooldown {p} shorter."],
+			["long_count", "The Long Count", 3, 3, "blink", 0.08, "Blink another {p} further."],
+			["zero", "Zero", 4, 1, "k_power", 0.2, "Blink cooldown another {p} shorter."],
+		]],
+		["Quarantine", [
+			["sterile", "Sterile", 1, 3, "k_catch", 0.12, "Catch downed survivors {p} faster."],
+			["procedure", "Procedure", 2, 3, "k_recover", 0.08, "Recover from swings {p} faster."],
+			["isolation", "Isolation", 3, 3, "k_catch", 0.1, "Catch downed survivors another {p} faster."],
+			["containment", "Containment", 4, 1, "k_recover", 0.2, "Recover from swings another {p} faster."],
+		]],
+		["Patience", [
+			["slow_walk", "Slow Walk", 1, 3, "k_fatigue", 4.0, "Tire {v} s later in a chase."],
+			["unmoved", "Unmoved", 2, 3, "k_stun", 0.08, "Stuns and knockdowns {p} shorter."],
+			["long_stride", "Long Stride", 3, 3, "k_move", 0.02, "Move {p} faster."],
+			["inevitable", "Inevitable", 4, 1, "k_move", 0.05, "Move another {p} faster."],
+		]],
+	]},
+	"choir": {"name": "The Choir", "side": "killer", "branches": [
+		["Hymn", [
+			["crescendo", "Crescendo", 1, 3, "scream", 0.06, "Scream carries {p} further."],
+			["encore", "Encore", 2, 3, "k_power", 0.08, "Scream cooldown {p} shorter."],
+			["dissonance", "Dissonance", 3, 3, "scream", 0.08, "Scream carries another {p} further."],
+			["requiem", "Requiem", 4, 1, "k_power", 0.2, "Scream cooldown another {p} shorter."],
+		]],
+		["Communion", [
+			["many_hands", "Many Hands", 1, 3, "k_catch", 0.12, "Catch downed survivors {p} faster."],
+			["chorus", "Chorus", 2, 3, "k_recover", 0.08, "Recover from swings {p} faster."],
+			["congregation", "Congregation", 3, 3, "k_smash", 0.15, "Deal {p} more damage to walls and stations."],
+			["one_voice", "One Voice", 4, 1, "k_catch", 0.3, "Catch downed survivors another {p} faster."],
+		]],
+		["Procession", [
+			["march", "March", 1, 3, "k_move", 0.02, "Move {p} faster."],
+			["vigil", "Vigil", 2, 3, "k_fatigue", 4.0, "Tire {v} s later in a chase."],
+			["three_hearts", "Three Hearts", 3, 3, "k_stun", 0.08, "Stuns and knockdowns {p} shorter."],
+			["amen", "Amen", 4, 1, "k_stun", 0.2, "Stuns and knockdowns another {p} shorter."],
+		]],
+	]},
 }
 
 static var profile := {}
@@ -357,7 +457,7 @@ static func survivor_tree(role: int) -> String:
 
 
 static func killer_tree(k: int) -> String:
-	return ["tracker", "brute", "lurker"][k]
+	return ["tracker", "brute", "lurker", "foreman", "hollow", "furnace", "tally", "choir"][k]
 
 
 # ------------------------------------------------------------------------------

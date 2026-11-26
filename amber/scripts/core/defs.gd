@@ -63,12 +63,19 @@ const ROLE_BLURBS := [
 	"Carries more traps and places them faster (Q). Snares hold killers; flash traps disorient them.",
 ]
 
-enum K { TRACKER, BRUTE, LURKER }
-const KILLER_NAMES := ["Tracker", "Brute", "Lurker"]
+enum K { TRACKER, BRUTE, LURKER, FOREMAN, HOLLOW, FURNACE, TALLY, CHOIR }
+const KILLER_NAMES := ["Tracker", "Brute", "Lurker", "Foreman", "Hollow", "Furnace", "Tally Man", "Choir"]
+const KILLER_SLOTS := ["killer_tracker", "killer_brute", "killer_lurker", "killer_foreman", "killer_hollow", "killer_furnace", "killer_tally", "killer_choir"]
+const KILLER_POWERS := ["Stalk", "Charge", "Tongue", "Slam", "Skitter", "Firebreak", "Blink", "Scream"]
 const KILLER_BLURBS := [
 	"Stalk (RMB): invisible and fast, but blind to survivors — only tracks, blood and noise. Countered by the scent mask.",
 	"Charge (RMB): smash through walls and knock survivors down. Turns badly, stunned on a miss, stopped by metal walls.",
 	"Tongue (RMB): long-range grab that pulls a survivor in. No warning sound. Must stand still while pulling; weak once spotted.",
+	"Slam (RMB): bring the pickaxe down. Survivors close by are slowed, revealed and knocked off whatever they were doing; walls crack.",
+	"Skitter (RMB): drop to all fours, very fast, and crawl through crevices. Can't attack until it stands again.",
+	"Firebreak (RMB): leave burning ground behind you. It wounds healthy survivors, slows and reveals anyone in it. You glow in the dark.",
+	"Blink (RMB): teleport forward. Unseen beyond 10 m; survivors close by feel something counting.",
+	"Scream (RMB): survivors within 11 m drop what they're doing, are slowed and revealed, and their map scrambles.",
 ]
 
 enum Health { HEALTHY, WOUNDED, DOWNED }

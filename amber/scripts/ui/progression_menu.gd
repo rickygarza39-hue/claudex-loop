@@ -8,7 +8,7 @@ signal closed
 const C_GOLD := Color(1.0, 0.72, 0.25)
 const C_TEXT := Color(0.88, 0.84, 0.76)
 const C_DIM := Color(0.55, 0.52, 0.48)
-const TREE_ORDER := ["kit", "engineer", "medic", "trapper", "tracker", "brute", "lurker"]
+const TREE_ORDER := ["kit", "engineer", "medic", "trapper", "tracker", "brute", "lurker", "foreman", "hollow", "furnace", "tally", "choir"]
 
 var tree_id := "kit"
 var tab_buttons: Array = []
@@ -73,7 +73,8 @@ func _ready() -> void:
 		var b := Button.new()
 		b.text = Progression.TREES[tid]["name"]
 		b.toggle_mode = true
-		b.custom_minimum_size = Vector2(150, 40)
+		b.custom_minimum_size = Vector2(118, 38)
+		b.add_theme_font_size_override("font_size", 14)
 		var t2: String = tid
 		b.pressed.connect(func(): _show_tree(t2))
 		tabs.add_child(b)

@@ -94,11 +94,14 @@ void fragment() {
 	# killers
 	killer_box = VBoxContainer.new()
 	col.add_child(killer_box)
-	var kb := HBoxContainer.new()
-	kb.alignment = BoxContainer.ALIGNMENT_CENTER
-	kb.add_theme_constant_override("separation", 10)
-	killer_box.add_child(kb)
-	for i in 3:
+	var kc := CenterContainer.new()
+	killer_box.add_child(kc)
+	var kb := GridContainer.new()
+	kb.columns = 4
+	kb.add_theme_constant_override("h_separation", 10)
+	kb.add_theme_constant_override("v_separation", 8)
+	kc.add_child(kb)
+	for i in Defs.KILLER_NAMES.size():
 		var idx2 := i
 		var b2 := _toggle(Defs.KILLER_NAMES[i], func(): _set_killer(idx2))
 		killer_buttons.append(b2)
@@ -251,7 +254,7 @@ func _set_role(r: int) -> void:
 
 func _set_killer(k: int) -> void:
 	killer = k
-	for i in 3:
+	for i in killer_buttons.size():
 		killer_buttons[i].button_pressed = i == k
 	_info()
 

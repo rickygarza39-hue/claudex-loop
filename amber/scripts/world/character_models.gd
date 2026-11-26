@@ -361,6 +361,174 @@ static func lurker(root: Node3D, _o: Dictionary) -> void:
 			Models.box(j[h], Vector3(0.012, 0.3, 0.012), claw, Vector3((k - 1.5) * 0.022, -0.2, -0.02), Vector3(0.15, 0, (k - 1.5) * 0.08))
 
 
+## The Foreman: the old site boss, hard hat and gas mask grown into his skull by amber,
+## a canvas coat stiff with blood, a pickaxe dragged behind him.
+static func foreman(root: Node3D, _o: Dictionary) -> void:
+	var skin := _wet(Color(0.33, 0.27, 0.24))
+	var canvas := Mats.organic(Color(0.2, 0.17, 0.12), 0.95, 3.0, 0.3, 0.3)
+	var metal := _m(Color(0.3, 0.28, 0.26), 0.45, 0.8)
+	var j := biped(root, {"top": canvas, "bottom": canvas, "boots": _m(Color(0.08, 0.06, 0.05)), "skin": skin, "sleeve": canvas,
+		"thigh": 0.48, "shin": 0.46, "torso_h": 0.62, "chest_w": 0.56, "waist_w": 0.46, "chest_d": 0.34, "shoulder_w": 0.32,
+		"upper_arm": 0.36, "forearm": 0.36, "neck": 0.06, "head_r": 0.13, "leg_r": 0.08, "arm_r": 0.065})
+	(j["Torso"] as Node3D).rotation.x = -0.35
+	var head: Node3D = j["Head"]
+	Models.sphere(head, 0.13, skin, Vector3.ZERO, Vector3(1.0, 1.05, 1.0))
+	# hard hat fused to the skull by amber crust
+	var hat := Mats.organic(Color(0.6, 0.45, 0.12), 0.6, 3.0, 0.2, 0.4)
+	Models.sphere(head, 0.15, hat, Vector3(0, 0.06, 0), Vector3(1.05, 0.62, 1.1))
+	Models.cyl(head, 0.2, 0.2, 0.02, hat, Vector3(0, 0.04, -0.01))
+	_amber_veins(head, 8, Vector3(0.12, 0.04, 0.12), Vector3(0, 0.03, 0), 0.03)
+	# gas mask with cracked lenses glowing from inside
+	Models.box(head, Vector3(0.2, 0.16, 0.1), _m(Color(0.12, 0.12, 0.1), 0.5, 0.3), Vector3(0, -0.04, -0.12))
+	Models.cyl(head, 0.045, 0.055, 0.1, metal, Vector3(0, -0.1, -0.19), Vector3(PI * 0.5, 0, 0))
+	_eyes(head, [Vector3(-0.05, 0.02, -0.17), Vector3(0.05, 0.02, -0.17)], 0.03, Color(1.0, 0.5, 0.1))
+	# headlamp
+	Models.cyl(head, 0.035, 0.035, 0.04, metal, Vector3(0, 0.1, -0.14), Vector3(PI * 0.5, 0, 0))
+	_splatter(j["Torso"], 5, Vector3(0, 0.3, -0.18), Vector3(0.18, 0.2, 0.01), 0.05)
+	# tool belt and the pickaxe
+	Models.box(j["Hips"], Vector3(0.5, 0.07, 0.36), _m(Color(0.2, 0.12, 0.06), 0.6), Vector3(0, 0.06, 0))
+	var pick := Models.pivot(j["HandR"], "Pickaxe", Vector3(0, -0.06, 0))
+	Models.cyl(pick, 0.025, 0.03, 1.1, _m(Color(0.3, 0.2, 0.12), 0.7), Vector3(0, -0.45, 0))
+	Models.box(pick, Vector3(0.05, 0.06, 0.75), metal, Vector3(0, -0.98, -0.05), Vector3(0.2, 0, 0))
+	Models.box(pick, Vector3(0.055, 0.065, 0.18), _blood(), Vector3(0, -0.98, -0.36))
+
+
+## The Hollow: a miner opened up by the infection. The ribs have split outward into a jaw
+## the size of a chest, there is no face left, and it moves best on all fours.
+static func hollow(root: Node3D, _o: Dictionary) -> void:
+	var skin := _wet(Color(0.33, 0.3, 0.28))
+	var raw := _wet(Color(0.42, 0.06, 0.06))
+	var j := biped(root, {"top": skin, "bottom": skin, "boots": skin, "skin": skin,
+		"thigh": 0.5, "shin": 0.5, "foot_h": 0.05, "torso_h": 0.6, "chest_w": 0.34, "waist_w": 0.2, "chest_d": 0.22, "shoulder_w": 0.2,
+		"upper_arm": 0.55, "forearm": 0.55, "neck": 0.14, "head_r": 0.11, "leg_r": 0.045, "arm_r": 0.035})
+	(j["Torso"] as Node3D).rotation.x = -0.95
+	(j["Neck"] as Node3D).rotation.x = 0.8
+	var head: Node3D = j["Head"]
+	Models.sphere(head, 0.11, skin, Vector3.ZERO, Vector3(0.85, 1.2, 1.0))
+	# a vertical mouth where the face was
+	Models.box(head, Vector3(0.025, 0.16, 0.02), raw, Vector3(0, -0.01, -0.1))
+	_teeth(head, 5, 0.02, Vector3(0, 0.07, -0.105), 0.03, true)
+	# the chest opened into a jaw: ribs bent outward around a raw, glowing cavity
+	var torso: Node3D = j["Torso"]
+	Models.sphere(torso, 0.13, raw, Vector3(0, 0.4, -0.08), Vector3(1.0, 1.4, 0.4))
+	var bone := _bone()
+	for k in 6:
+		for sd in [-1, 1]:
+			Models.box(torso, Vector3(0.24, 0.025, 0.025), bone, Vector3(0.14 * sd, 0.22 + k * 0.07, -0.16), Vector3(0, -0.9 * sd, -0.25 * sd))
+	_eyes(torso, [Vector3(0, 0.4, -0.12)], 0.04, Color(1.0, 0.25, 0.05))
+	_splatter(torso, 4, Vector3(0, 0.15, -0.12), Vector3(0.08, 0.06, 0.01), 0.04)
+	_amber_veins(torso, 6, Vector3(0.1, 0.25, 0.05), Vector3(0, 0.35, 0.08), 0.03)
+	var claw := _m(Color(0.2, 0.18, 0.16), 0.3)
+	for h in ["HandL", "HandR"]:
+		for k in 4:
+			Models.box(j[h], Vector3(0.012, 0.22, 0.012), claw, Vector3((k - 1.5) * 0.022, -0.14, -0.02), Vector3(0.3, 0, 0))
+
+
+## The Furnace: a smelter hand still burning inside. Charred black skin split by glowing
+## cracks, a welding helmet melted to the head, a poker that never cools.
+static func furnace(root: Node3D, _o: Dictionary) -> void:
+	var char := Mats.organic(Color(0.07, 0.06, 0.055), 0.85, 6.0, 0.15, 0.4)
+	var leather := Mats.organic(Color(0.24, 0.15, 0.08), 0.7, 3.0, 0.25, 0.3)
+	var metal := _m(Color(0.22, 0.2, 0.18), 0.5, 0.8)
+	var glow := Mats.flat(Color(1.0, 0.42, 0.06), 3.5, 0.5)
+	var j := biped(root, {"top": char, "bottom": leather, "boots": _m(Color(0.06, 0.05, 0.04)), "skin": char, "sleeve": char,
+		"thigh": 0.5, "shin": 0.48, "torso_h": 0.66, "chest_w": 0.52, "waist_w": 0.42, "chest_d": 0.32, "shoulder_w": 0.3,
+		"upper_arm": 0.38, "forearm": 0.38, "neck": 0.07, "head_r": 0.13, "leg_r": 0.075, "arm_r": 0.06})
+	(j["Torso"] as Node3D).rotation.x = -0.2
+	var torso: Node3D = j["Torso"]
+	# glowing cracks all over the body
+	for nm in ["Torso", "ArmL", "ArmR", "ForearmL", "ForearmR", "LegL", "LegR"]:
+		var part: Node3D = j[nm]
+		for i in 5:
+			Models.box(part, Vector3(0.012, 0.09 + 0.05 * float(i % 3), 0.012), glow, Vector3(sin(i * 2.3) * 0.06, -0.08 - i * 0.06 if nm != "Torso" else 0.15 + i * 0.09, -0.06 + cos(i * 1.7) * 0.02), Vector3(0, 0, sin(i * 1.3) * 0.6))
+	var core := OmniLight3D.new()
+	core.light_color = Color(1.0, 0.45, 0.1)
+	core.light_energy = 1.4
+	core.omni_range = 4.5
+	core.position = Vector3(0, 0.4, -0.3)
+	torso.add_child(core)
+	Models.box(j["Hips"], Vector3(0.5, 0.75, 0.04), leather, Vector3(0, -0.3, -0.25))
+	var head: Node3D = j["Head"]
+	Models.sphere(head, 0.13, char, Vector3.ZERO)
+	# welding helmet melted onto the head, the slit glowing
+	Models.box(head, Vector3(0.26, 0.3, 0.26), metal, Vector3(0, 0.02, -0.01))
+	Models.box(head, Vector3(0.18, 0.03, 0.02), glow, Vector3(0, 0.03, -0.14))
+	Models.box(head, Vector3(0.1, 0.12, 0.02), _m(Color(0.15, 0.13, 0.12), 0.4, 0.8), Vector3(0.09, -0.12, -0.12), Vector3(0, 0, 0.5))
+	# a red-hot poker
+	var pk := Models.pivot(j["HandR"], "Poker", Vector3(0, -0.06, 0))
+	Models.cyl(pk, 0.02, 0.02, 0.9, metal, Vector3(0, -0.35, 0))
+	Models.cyl(pk, 0.0, 0.03, 0.35, glow, Vector3(0, -0.95, 0))
+
+
+## The Tally Man: a figure in a quarantine suit gone yellow with age, tally marks
+## scratched over every inch of it, a visor that shows nothing but black.
+static func tally(root: Node3D, _o: Dictionary) -> void:
+	var suit := Mats.organic(Color(0.46, 0.43, 0.3), 0.8, 2.5, 0.2, 0.5)
+	var dark := _m(Color(0.02, 0.02, 0.025), 0.05, 0.3)
+	var skin := _wet(Color(0.55, 0.52, 0.5))
+	var j := biped(root, {"top": suit, "bottom": suit, "boots": skin, "skin": skin, "sleeve": suit, "hands": skin,
+		"thigh": 0.55, "shin": 0.55, "foot_h": 0.05, "torso_h": 0.66, "chest_w": 0.36, "waist_w": 0.3, "chest_d": 0.24, "shoulder_w": 0.22,
+		"upper_arm": 0.44, "forearm": 0.46, "neck": 0.12, "head_r": 0.14, "leg_r": 0.07, "arm_r": 0.055})
+	var head: Node3D = j["Head"]
+	# hood and a pitch-black visor
+	Models.sphere(head, 0.16, suit, Vector3(0, 0.01, 0.01), Vector3(1.0, 1.15, 1.05))
+	Models.sphere(head, 0.12, dark, Vector3(0, 0.0, -0.06), Vector3(1.0, 0.9, 0.7))
+	Models.cyl(head, 0.05, 0.06, 0.08, _m(Color(0.25, 0.25, 0.22), 0.5, 0.5), Vector3(0.0, -0.13, -0.08), Vector3(0.7, 0, 0))
+	# tally marks scratched into the suit, in fives
+	var ink := _m(Color(0.18, 0.06, 0.05), 0.6)
+	for g in 6:
+		var base := Vector3(-0.13 + (g % 3) * 0.11, 0.2 + (g / 3) * 0.2, -0.13)
+		for k in 4:
+			Models.box(j["Torso"], Vector3(0.007, 0.07, 0.004), ink, base + Vector3(k * 0.016, 0, 0))
+		Models.box(j["Torso"], Vector3(0.08, 0.007, 0.004), ink, base + Vector3(0.024, 0, -0.001), Vector3(0, 0, 0.6))
+	# too-long bare fingers, one holding a stub of chalk
+	var claw := _m(Color(0.4, 0.38, 0.36), 0.4)
+	for h in ["HandL", "HandR"]:
+		for k in 4:
+			Models.box(j[h], Vector3(0.012, 0.24, 0.012), claw, Vector3((k - 1.5) * 0.02, -0.16, -0.01), Vector3(0.1, 0, 0))
+	Models.box(j["HandR"], Vector3(0.02, 0.06, 0.02), _m(Color(0.9, 0.9, 0.85)), Vector3(0, -0.3, -0.03))
+	_splatter(j["Torso"], 3, Vector3(0, 0.15, -0.13), Vector3(0.1, 0.1, 0.01), 0.04)
+
+
+## The Choir: three bodies grown into one, three heads on three necks, every mouth open,
+## four arms, the rags of choir robes.
+static func choir(root: Node3D, _o: Dictionary) -> void:
+	var skin := _wet(Color(0.42, 0.36, 0.33))
+	var robe := Mats.organic(Color(0.25, 0.04, 0.05), 0.9, 2.5, 0.25, 0.35)
+	var j := biped(root, {"top": robe, "bottom": robe, "boots": skin, "skin": skin, "sleeve": skin,
+		"thigh": 0.5, "shin": 0.5, "torso_h": 0.72, "chest_w": 0.7, "waist_w": 0.55, "chest_d": 0.36, "shoulder_w": 0.4,
+		"upper_arm": 0.42, "forearm": 0.42, "neck": 0.16, "head_r": 0.12, "leg_r": 0.08, "arm_r": 0.05})
+	var torso: Node3D = j["Torso"]
+	var neck: Node3D = j["Neck"]
+	var mouth := Mats.flat(Color(0.02, 0.0, 0.0))
+	# the middle head (the rig's own) plus two more, tilted, all screaming
+	var heads: Array = [j["Head"]]
+	for sd in [-1, 1]:
+		var n2 := Models.pivot(torso, "NeckExtra%d" % sd, Vector3(0.24 * sd, 0.66, 0.02))
+		n2.rotation = Vector3(-0.2, 0, -0.55 * sd)
+		Models.cyl(n2, 0.05, 0.06, 0.2, skin, Vector3(0, 0.1, 0))
+		var h2 := Models.pivot(n2, "HeadExtra%d" % sd, Vector3(0, 0.27, 0))
+		h2.rotation = Vector3(0.3, 0.2 * sd, 0.4 * sd)
+		heads.append(h2)
+	for h in heads:
+		Models.sphere(h, 0.12, skin, Vector3.ZERO, Vector3(0.85, 1.15, 1.0))
+		Models.sphere(h, 0.05, mouth, Vector3(0, -0.05, -0.1), Vector3(0.9, 1.6, 0.5))   # wide-open mouth
+		_eyes(h, [Vector3(-0.035, 0.04, -0.105), Vector3(0.035, 0.04, -0.105)], 0.012, Color(0.95, 0.85, 0.6))
+	# a second pair of arms growing from the ribs
+	for sd2 in [-1, 1]:
+		var a2 := Models.pivot(torso, "ArmExtra%d" % sd2, Vector3(0.3 * sd2, 0.35, -0.05))
+		a2.rotation = Vector3(0.9, 0, 0.5 * sd2)
+		Models.capsule(a2, 0.04, 0.6, skin, Vector3(0, -0.3, 0))
+		for k in 3:
+			Models.box(a2, Vector3(0.012, 0.16, 0.012), skin, Vector3((k - 1) * 0.02, -0.66, 0))
+	# tattered robe hem
+	for k in 11:
+		var a := (k - 5) * 0.06
+		Models.box(j["Hips"], Vector3(0.07, 0.5 + (k % 3) * 0.12, 0.015), robe, Vector3(a, -0.3, -0.2 + absf(a) * 0.2), Vector3(-0.1, 0, 0.05 * (k % 3 - 1)))
+	_splatter(torso, 5, Vector3(0, 0.3, -0.18), Vector3(0.2, 0.2, 0.01), 0.05)
+	_amber_veins(torso, 8, Vector3(0.25, 0.25, 0.05), Vector3(0, 0.4, -0.17), 0.04)
+
+
 ## An elite: a caught survivor, clothes torn, amber growths, eyes glowing.
 static func elite(root: Node3D, o: Dictionary) -> void:
 	survivor(root, {"color": (o.get("color", Color(0.3, 0.25, 0.2)) as Color).darkened(0.45), "role": -1, "variant": o.get("variant", 0)})

@@ -438,6 +438,38 @@ func _chase(_dt: float) -> void:
 					k.power_aim = to.normalized()
 					k.want_power = true
 					return
+			Defs.K.FOREMAN:
+				# slam when a survivor is close, ideally while they're busy
+				if d < Tuning.SLAM_RADIUS * 0.7 and (not target.channel.is_empty() or mt.rng.randf() < 0.35):
+					k.power_aim = to.normalized()
+					k.facing = Actor.yaw_of(to)
+					k.want_power = true
+					return
+			Defs.K.HOLLOW:
+				# skitter to close a long gap or follow through a crevice
+				if d > 8.0 and d < 28.0 and mt.rng.randf() < 0.5:
+					k.want_power = true
+					return
+			Defs.K.FURNACE:
+				# burn the ground while chasing, cutting off the escape
+				if d < 12.0 and mt.rng.randf() < 0.5:
+					k.want_power = true
+					return
+			Defs.K.TALLY:
+				# blink in when the target is in range and the way is clear
+				if d > 5.0 and d < Tuning.BLINK_RANGE + 2.0 and mt.m.clear_line(k.pos, target.pos, k.radius, false, mt.solid_fn_for(k)) and mt.rng.randf() < 0.5:
+					k.power_aim = to.normalized()
+					k.want_power = true
+					return
+			Defs.K.CHOIR:
+				# scream when one or more survivors are in range
+				var n := 0
+				for s2 in mt.living_survivors():
+					if s2.pos.distance_to(k.pos) < Tuning.SCREAM_RADIUS * 0.85:
+						n += 1
+				if n >= 1 and (n >= 2 or not target.channel.is_empty() or mt.rng.randf() < 0.3):
+					k.want_power = true
+					return
 			Defs.K.LURKER:
 				var rng_t = Tuning.TONGUE_RANGE * (0.5 if k.elite else 1.0)
 				if d > 3.5 and d < rng_t - 1.0 and target.pinned_by == null and mt.m.los(k.pos, k.y + 1.6, target.pos, target.y + 1.0) and mt.rng.randf() < 0.45:

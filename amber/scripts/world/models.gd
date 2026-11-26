@@ -15,6 +15,11 @@ const SLOTS := {
 	"killer_tracker": [1.95, "Tracker killer: lean, hunched, clawed"],
 	"killer_brute": [2.55, "Brute killer: huge tank"],
 	"killer_lurker": [2.2, "Lurker killer: tall, thin, long neck"],
+	"killer_foreman": [2.0, "The Foreman: miner boss, fused hard hat and gas mask, pickaxe"],
+	"killer_hollow": [1.6, "The Hollow: opened-up miner, ribs split into a jaw, crawls"],
+	"killer_furnace": [2.1, "The Furnace: charred smelter worker glowing through cracks, welding helmet, poker"],
+	"killer_tally": [2.15, "The Tally Man: tall figure in a stained quarantine suit, black visor"],
+	"killer_choir": [2.2, "The Choir: three fused bodies, three screaming heads, four arms"],
 	"elite": [1.8, "Elite infected (turned survivor)"],
 	"husk": [1.6, "Swarm husk (AI infected)"],
 	"station_antenna": [6.0, "Radio stage 1: antenna mast"],
@@ -252,6 +257,11 @@ static func _placeholder(slot: String, o: Dictionary) -> Node3D:
 		"killer_tracker": CharacterModels.tracker(root, o)
 		"killer_brute": CharacterModels.brute(root, o)
 		"killer_lurker": CharacterModels.lurker(root, o)
+		"killer_foreman": CharacterModels.foreman(root, o)
+		"killer_hollow": CharacterModels.hollow(root, o)
+		"killer_furnace": CharacterModels.furnace(root, o)
+		"killer_tally": CharacterModels.tally(root, o)
+		"killer_choir": CharacterModels.choir(root, o)
 		"elite": CharacterModels.elite(root, o)
 		"husk": CharacterModels.husk(root, o)
 		"vehicle": _vehicle(root, o)

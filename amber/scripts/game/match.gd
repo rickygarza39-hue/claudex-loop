@@ -247,7 +247,15 @@ func _create_slots() -> void:
 			if s.is_human:
 				player_slot = s
 		duos.append(duo)
-	var types := [Defs.K.TRACKER, Defs.K.BRUTE, Defs.K.LURKER]
+	# three different killers each match, drawn from all eight
+	var types: Array = range(Defs.KILLER_NAMES.size())
+	for i in range(types.size() - 1, 0, -1):
+		var j := rng.randi_range(0, i)
+		var tmp = types[i]
+		types[i] = types[j]
+		types[j] = tmp
+	if cfg.has("killers"):
+		types = cfg["killers"].duplicate()
 	if side == Defs.Side.KILLER and not spectate:
 		var pk := int(cfg.get("killer", Defs.K.TRACKER))
 		types.erase(pk)
@@ -257,7 +265,7 @@ func _create_slots() -> void:
 		s.id = sid
 		sid += 1
 		s.side = Defs.Side.KILLER
-		s.ktype = types[i % 3]
+		s.ktype = types[i % types.size()]
 		s.is_human = i == 0 and side == Defs.Side.KILLER and not spectate
 		s.name = "The " + Defs.KILLER_NAMES[s.ktype] + (" (you)" if s.is_human else "")
 		slots.append(s)
@@ -348,6 +356,7 @@ func step(dt: float) -> void:
 	_separate()
 	bases.tick(dt)
 	nest.tick(dt)
+	_tick_fires(dt)
 	for s in survivors:
 		bases.auto_deposit(s)
 	_disc_t -= dt
@@ -461,6 +470,126 @@ func solid_fn_for(a: Actor) -> Callable:
 
 func structure_at(tl: Vector2i) -> Structure:
 	return structures.get(tl)
+
+
+# ------------------------------------------------------------------------------
+# New killers' powers
+
+var fires: Array = []          # Furnace burning ground: {pos, until, by, node}
+var map_jam_until := -1.0      # the human survivor's map is scrambled (Choir)
+
+
+## The Foreman's slam: slows, reveals and interrupts survivors near the impact; cracks walls.
+func slam(k: Killer, at: Vector2, radius: float) -> void:
+	make_noise(at, 30.0, "smash", k)
+	if sfx != null:
+		sfx.play3d("smash", Vector3(at.x, m.height_at(at), at.y), 6.0)
+	for s in living_survivors():
+		var d: float = s.pos.distance_to(at)
+		if d > radius or s.hidden_in != null:
+			continue
+		s.slow_until = maxf(s.slow_until, time + Tuning.SLAM_SLOW)
+		s.revealed_until = maxf(s.revealed_until, time + Tuning.SLAM_REVEAL)
+		s.cancel_channel()
+		if s.slot.is_human and controller and controller.has_method("hit_feedback"):
+			controller.hit_feedback(clampf(1.0 - d / radius, 0.3, 1.0))
+		feed_to_duo(s.duo, "%s was caught in the Foreman's slam!" % s.slot.name, "danger", 3.0)
+	for st in structures_near(at, 4.0):
+		st.damage(Tuning.SLAM_STRUCT_DMG, k)
+
+
+## The Furnace drops a burning patch.
+func add_fire(p: Vector2, k: Killer) -> void:
+	var f := {"pos": p, "until": time + Tuning.FIRE_PATCH_LIFE, "by": k, "node": null}
+	if visuals:
+		var n := Node3D.new()
+		n.position = Vector3(p.x, m.height_at(p) + 0.02, p.y)
+		Models.cyl(n, Tuning.FIRE_RADIUS * 0.8, Tuning.FIRE_RADIUS, 0.04, Mats.flat(Color(0.1, 0.03, 0.01)), Vector3(0, 0.02, 0))
+		for i in 5:
+			var a := float(i) * 1.3
+			Models.cyl(n, 0.0, 0.12, 0.5 + 0.25 * float(i % 3), Mats.flat(Color(1.0, 0.45, 0.08), 4.0, 0.5), Vector3(sin(a) * 0.6, 0.3, cos(a) * 0.6))
+		var l := OmniLight3D.new()
+		l.light_color = Color(1.0, 0.5, 0.15)
+		l.light_energy = 1.6
+		l.omni_range = 5.0
+		l.position = Vector3(0, 0.8, 0)
+		n.add_child(l)
+		add_child(n)
+		f["node"] = n
+	fires.append(f)
+
+
+func _tick_fires(_dt: float) -> void:
+	if fires.is_empty():
+		return
+	var keep: Array = []
+	for f in fires:
+		if time > f["until"]:
+			if f["node"] != null:
+				f["node"].queue_free()
+			continue
+		keep.append(f)
+		if f["node"] != null:
+			(f["node"] as Node3D).scale = Vector3.ONE * (0.9 + 0.1 * sin(time * 9.0 + f["pos"].x))
+		for s in living_survivors():
+			if s.is_downed() or s.dropping() or s.pos.distance_to(f["pos"]) > Tuning.FIRE_RADIUS:
+				continue
+			s.slow_until = maxf(s.slow_until, time + 2.0)
+			s.revealed_until = maxf(s.revealed_until, time + 3.0)
+			if s.health == Defs.Health.HEALTHY and time - s.get_meta("burned_at", -99.0) > Tuning.FIRE_WOUND_LOCKOUT:
+				s.set_meta("burned_at", time)
+				s.health = Defs.Health.WOUNDED
+				make_noise(s.pos, 15.0, "scream", s)
+				feed_to_duo(s.duo, "%s was burned!" % s.slot.name, "danger", 3.0)
+				if s.slot.is_human and hud:
+					hud.hurt.color.a = 0.5
+	fires = keep
+
+
+## The Tally Man steps through space to the furthest clear point along a direction.
+func blink(k: Killer, dir: Vector2, dist: float) -> void:
+	var best := k.pos
+	var steps := int(dist / 0.5)
+	for i in range(1, steps + 1):
+		var p := k.pos + dir * (i * 0.5)
+		if not m.clear_line(k.pos, p, k.radius, false, solid_fn_for(k)):
+			break
+		best = p
+	if best.distance_to(k.pos) < 1.0:
+		return
+	make_noise(k.pos, 6.0, "whisper", k)
+	k.pos = best
+	k.facing = Actor.yaw_of(dir)
+	k.clear_path()
+	make_noise(best, 6.0, "whisper", k)
+
+
+## The Choir screams: everyone close drops what they were doing, slows and shows up for the killers.
+func scream(k: Killer, radius: float) -> void:
+	make_noise(k.pos, 40.0, "roar", k)
+	if sfx != null:
+		sfx.play3d("scream", Vector3(k.pos.x, k.y + 1.8, k.pos.y), 8.0)
+	for s in living_survivors():
+		if s.pos.distance_to(k.pos) > radius:
+			continue
+		s.cancel_channel()
+		s.slow_until = maxf(s.slow_until, time + Tuning.SCREAM_SLOW)
+		s.revealed_until = maxf(s.revealed_until, time + Tuning.SCREAM_REVEAL)
+		if s.hidden_in != null:
+			bases.unhide(s)
+		if s.slot.is_human:
+			map_jam_until = time + Tuning.SCREAM_MAP_JAM
+			if controller and controller.has_method("hit_feedback"):
+				controller.hit_feedback(0.6)
+		feed_to_duo(s.duo, "%s heard the Choir. Their map is scrambled." % s.slot.name if s.slot.is_human else "%s heard the Choir!" % s.slot.name, "danger", 3.0)
+
+
+## Is any Tally Man close enough to the player to be felt?
+func tally_near(p: Vector2) -> bool:
+	for k in killers:
+		if k.ktype == Defs.K.TALLY and k.released and k.pos.distance_to(p) < Tuning.TALLY_DREAD:
+			return true
+	return false
 
 
 func structures_near(p: Vector2, r: float) -> Array:
@@ -1217,6 +1346,8 @@ func _update_visibility() -> void:
 			if not k.released and viewer != null and viewer is Survivor:
 				show = true
 			if k.stalking() and viewer is Survivor and viewer.pos.distance_to(k.pos) > 3.0:
+				show = false
+			if k.ktype == Defs.K.TALLY and k.is_main() and viewer is Survivor and viewer.pos.distance_to(k.pos) > Tuning.TALLY_VISIBLE:
 				show = false
 		elif a is Survivor:
 			var s := a as Survivor

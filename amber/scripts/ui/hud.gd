@@ -27,6 +27,7 @@ var toast_t := 0.0
 var vignette: ColorRect
 var flash: ColorRect
 var hurt: ColorRect
+var dread: Label
 var map_layer: Control
 var map_view: MapView
 var build_panel: PanelContainer
@@ -329,7 +330,29 @@ func _process(delta: float) -> void:
 	if toast_t > 0.0:
 		toast_t -= delta
 		toast_lbl.modulate.a = clampf(toast_t, 0.0, 1.0)
-	map_layer.visible = (Input.is_action_pressed("map") or force_map) and not results_panel.visible
+	var jammed: bool = mt.time < mt.map_jam_until and pc.actor is Survivor
+	map_layer.visible = (Input.is_action_pressed("map") or force_map) and not results_panel.visible and not jammed
+	if jammed and Input.is_action_just_pressed("map"):
+		toast("Your map is scrambled by the Choir's scream (%ds)." % int(mt.map_jam_until - mt.time))
+	# the Tally Man: you feel him before you see him
+	if dread == null:
+		dread = Label.new()
+		var ds := LabelSettings.new()
+		ds.font_size = 26
+		ds.font_color = Color(0.85, 0.82, 0.78)
+		ds.outline_size = 6
+		ds.outline_color = Color(0, 0, 0)
+		dread.label_settings = ds
+		dread.set_anchors_preset(Control.PRESET_CENTER_TOP)
+		dread.position = Vector2(-160, 150)
+		dread.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(dread)
+	var near: bool = pc.actor is Survivor and is_instance_valid(pc.actor) and mt.tally_near(pc.actor.pos)
+	if near:
+		var count := 10 - int(fmod(mt.time, 10.0))
+		dread.text = "...%d... something is counting..." % count
+		dread.modulate.a = 0.35 + 0.35 * absf(sin(mt.time * 2.3))
+	dread.visible = near
 	if map_layer.visible:
 		map_view.queue_redraw()
 	build_panel.visible = pc.build_mode and pc.actor is Survivor
@@ -418,7 +441,7 @@ func _update_status() -> void:
 		if k.ktype == Defs.K.LURKER and k.spotted():
 			line2 += "  ·  SPOTTED"
 		status.text = line2
-		var pw = ["Stalk", "Charge", "Tongue"][k.ktype]
+		var pw = Defs.KILLER_POWERS[k.ktype]
 		var pcd := k.power_cd_until - mt.time
 		var pws := "RMB %s %s" % [pw, ("(%ds)" % int(pcd)) if pcd > 0.0 else "(ready)"]
 		if k.stalking():

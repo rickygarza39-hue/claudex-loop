@@ -33,14 +33,47 @@ const DROP_FAIL_SLOW := 3.0        # seconds limping after a bad landing
 const SURV_WOUND_BOOST := 6.2
 const SURV_WOUND_BOOST_TIME := 2.6
 const WATER_MULT := 0.72
-const KILLER_SPEED := [4.35, 4.15, 4.25]   # Tracker, Brute, Lurker
+const KILLER_SPEED := [4.35, 4.15, 4.25, 4.2, 4.25, 4.1, 4.3, 4.15]   # by Defs.K
+const KILLER_EYE := [1.75, 2.3, 2.05, 1.95, 1.45, 2.1, 2.0, 2.15]
+const KILLER_BODY := [1.2, 1.6, 1.4, 1.3, 0.9, 1.4, 1.3, 1.45]
+# The Foreman: pickaxe slam
+const SLAM_WINDUP := 0.6
+const SLAM_RADIUS := 7.0
+const SLAM_SLOW := 3.0
+const SLAM_REVEAL := 5.0
+const SLAM_STRUCT_DMG := 120.0
+const SLAM_COOLDOWN := 18.0
+# The Hollow: skitter on all fours
+const SKITTER_TIME := 4.5
+const SKITTER_SPEED := 6.2
+const SKITTER_STANDUP := 0.6
+const SKITTER_COOLDOWN := 16.0
+# The Furnace: burning ground
+const FIRE_TIME := 6.0
+const FIRE_DROP_EVERY := 0.5
+const FIRE_PATCH_LIFE := 10.0
+const FIRE_RADIUS := 1.6
+const FIRE_WOUND_LOCKOUT := 8.0      # a survivor can be burned (wounded) at most this often
+const FIRE_COOLDOWN := 22.0
+# The Tally Man: blink
+const BLINK_RANGE := 11.0
+const BLINK_COOLDOWN := 12.0
+const TALLY_VISIBLE := 10.0          # survivors can't see him further away than this
+const TALLY_DREAD := 18.0            # "something is counting" inside this distance
+# The Choir: scream
+const SCREAM_WINDUP := 0.4
+const SCREAM_RADIUS := 11.0
+const SCREAM_SLOW := 2.5
+const SCREAM_REVEAL := 6.0
+const SCREAM_MAP_JAM := 8.0
+const SCREAM_COOLDOWN := 20.0
 const ELITE_SPEED := 3.75
 const ELITE_SIGHT := 11.0
 const ELITE_WINDUP := 0.55
 const ELITE_RECOVER_HIT := 2.9
 const HUSK_SPEED := 4.05
 const SURV_RADIUS := 0.32
-const KILLER_RADIUS := [0.38, 0.55, 0.36]
+const KILLER_RADIUS := [0.38, 0.55, 0.36, 0.42, 0.36, 0.42, 0.38, 0.48]
 
 # ---- Senses ---------------------------------------------------------------------
 const SURV_SIGHT := 20.0

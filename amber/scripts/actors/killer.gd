@@ -44,6 +44,7 @@ var tongue_mesh: MeshInstance3D
 var last_hit_time := -100.0
 var chase_t := 0.0
 var tired_until := -1.0
+var fire_drop_t := 0.0
 
 
 func setup_killer(match_ref: Match, s: Slot, p: Vector2, kt: int, is_elite: bool, is_husk: bool = false) -> void:
@@ -61,7 +62,7 @@ func _build_model() -> void:
 		if elite:
 			slot_name = "elite"
 		else:
-			slot_name = ["killer_tracker", "killer_brute", "killer_lurker"][ktype]
+			slot_name = Defs.KILLER_SLOTS[ktype]
 	var col := Color(0.35, 0.3, 0.25)
 	if elite and slot != null and slot.duo != null:
 		col = slot.duo.color
@@ -85,11 +86,13 @@ func eye_height() -> float:
 		return 1.5
 	if elite:
 		return 1.7
-	return [1.75, 2.3, 2.05][ktype]
+	if ktype == Defs.K.HOLLOW and power_state == "skitter":
+		return 0.8
+	return Tuning.KILLER_EYE[ktype]
 
 
 func body_height() -> float:
-	return [1.2, 1.6, 1.4][ktype] if not (elite or husk) else 1.1
+	return Tuning.KILLER_BODY[ktype] if not (elite or husk) else 1.1
 
 
 func is_main() -> bool:
@@ -121,8 +124,10 @@ func spotted() -> bool:
 
 
 func uses_gaps() -> bool:
-	## The Lurker is the one killer who can crawl through survivor crevices (slowly).
+	## The Lurker crawls through survivor crevices (slowly); so does a skittering Hollow.
 	## Elite Lurkers need the Vents skill for it.
+	if ktype == Defs.K.HOLLOW and power_state == "skitter":
+		return true
 	if ktype != Defs.K.LURKER or husk:
 		return false
 	return is_main() or (slot != null and slot.perk("Vents") > 0)
@@ -154,6 +159,10 @@ func move_speed() -> float:
 		s = Tuning.STALK_SPEED if is_main() else Tuning.STALK_SPEED * 0.85
 	if in_gap:
 		s = Tuning.LURKER_SQUEEZE * (1.0 + meta("k_squeeze"))
+	if power_state == "skitter":
+		s = Tuning.SKITTER_SPEED * (1.0 + meta("k_move"))
+	elif power_state in ["slam_windup", "scream_windup", "standup"]:
+		s *= 0.25
 	if atk_state == "windup":
 		s *= Tuning.WINDUP_MOVE
 	elif atk_state == "recover":
@@ -209,6 +218,18 @@ func _interrupt() -> void:
 		power_cd_until = mt.time + _cdm() * Tuning.CHARGE_COOLDOWN * 0.5
 	if stalking():
 		end_stalk()
+	match power_state:
+		"slam_windup":
+			power_cd_until = mt.time + _cdm() * Tuning.SLAM_COOLDOWN * 0.5
+		"scream_windup":
+			power_cd_until = mt.time + _cdm() * Tuning.SCREAM_COOLDOWN * 0.5
+		"skitter", "standup":
+			power_cd_until = mt.time + _cdm() * Tuning.SKITTER_COOLDOWN
+			crouch_amount = 0.0
+		"burn":
+			power_cd_until = mt.time + _cdm() * Tuning.FIRE_COOLDOWN
+	if power_state in ["slam_windup", "scream_windup", "skitter", "standup", "burn"]:
+		power_state = ""
 	atk_state = ""
 	anim_attack = 0.0
 	if not channel.is_empty():
@@ -228,7 +249,7 @@ func tick(dt: float) -> void:
 	# attack state machine
 	match atk_state:
 		"":
-			if want_attack and power_state == "" and not stunned() and not held() and channel.is_empty():
+			if want_attack and power_state in ["", "burn"] and not stunned() and not held() and channel.is_empty():
 				atk_state = "windup"
 				atk_t = 0.0
 		"windup":
@@ -327,6 +348,25 @@ func _try_power() -> void:
 			tongue_dir = (power_aim if power_aim != Vector2.ZERO else forward2()).normalized()
 			tongue_tip = pos
 			facing = Actor.yaw_of(tongue_dir)
+		Defs.K.FOREMAN:
+			power_state = "slam_windup"
+			power_t = Tuning.SLAM_WINDUP
+			mt.make_noise(pos, 14.0, "roar", self)
+		Defs.K.HOLLOW:
+			power_state = "skitter"
+			power_t = Tuning.SKITTER_TIME * power_mult() * (1.0 + meta("skitter"))
+			mt.make_noise(pos, 10.0, "roar", self)
+		Defs.K.FURNACE:
+			power_state = "burn"
+			power_t = Tuning.FIRE_TIME * power_mult() * (1.0 + meta("fire"))
+			fire_drop_t = 0.0
+			mt.make_noise(pos, 18.0, "roar", self)
+		Defs.K.TALLY:
+			mt.blink(self, (power_aim if power_aim != Vector2.ZERO else forward2()).normalized(), Tuning.BLINK_RANGE * power_mult() * (1.0 + meta("blink")))
+			power_cd_until = mt.time + _cdm() * Tuning.BLINK_COOLDOWN
+		Defs.K.CHOIR:
+			power_state = "scream_windup"
+			power_t = Tuning.SCREAM_WINDUP
 
 
 func end_stalk() -> void:
@@ -338,6 +378,42 @@ func end_stalk() -> void:
 
 func _tick_power(dt: float) -> void:
 	match power_state:
+		"slam_windup":
+			power_t -= dt
+			anim_attack = 1.0 - clampf(power_t / Tuning.SLAM_WINDUP, 0.0, 1.0)
+			if power_t <= 0.0:
+				power_state = ""
+				anim_attack = 0.0
+				power_cd_until = mt.time + _cdm() * Tuning.SLAM_COOLDOWN
+				mt.slam(self, pos + forward2() * 2.0, Tuning.SLAM_RADIUS * power_mult() * (1.0 + meta("slam")))
+		"skitter":
+			power_t -= dt
+			crouch_amount = 1.0
+			if power_t <= 0.0 or want_attack:
+				power_state = "standup"
+				power_t = Tuning.SKITTER_STANDUP
+				want_attack = false
+		"standup":
+			power_t -= dt
+			if power_t <= 0.0:
+				power_state = ""
+				crouch_amount = 0.0
+				power_cd_until = mt.time + _cdm() * Tuning.SKITTER_COOLDOWN
+		"burn":
+			power_t -= dt
+			fire_drop_t -= dt
+			if fire_drop_t <= 0.0:
+				fire_drop_t = Tuning.FIRE_DROP_EVERY
+				mt.add_fire(pos, self)
+			if power_t <= 0.0:
+				power_state = ""
+				power_cd_until = mt.time + _cdm() * Tuning.FIRE_COOLDOWN
+		"scream_windup":
+			power_t -= dt
+			if power_t <= 0.0:
+				power_state = ""
+				power_cd_until = mt.time + _cdm() * Tuning.SCREAM_COOLDOWN
+				mt.scream(self, Tuning.SCREAM_RADIUS * power_mult() * (1.0 + meta("scream")))
 		"stalk":
 			power_t -= dt
 			if power_t <= 0.0 or atk_state == "windup":

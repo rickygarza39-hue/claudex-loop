@@ -428,50 +428,55 @@ func _lineup(dir: String) -> void:
 	var env := WorldEnvironment.new()
 	env.environment = Environment.new()
 	env.environment.background_mode = Environment.BG_COLOR
-	env.environment.background_color = Color(0.06, 0.06, 0.07)
+	env.environment.background_color = Color(0.02, 0.02, 0.025)
 	env.environment.ambient_light_color = Color(0.5, 0.5, 0.55)
-	env.environment.ambient_light_energy = 0.6
+	env.environment.ambient_light_energy = 0.25
+	env.environment.fog_enabled = true
+	env.environment.fog_light_color = Color(0.08, 0.08, 0.09)
+	env.environment.fog_density = 0.02
 	env.environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.environment.glow_enabled = true
 	stage.add_child(env)
 	var sun := DirectionalLight3D.new()
 	sun.rotation = Vector3(-0.8, 0.5, 0)
-	sun.light_energy = 1.3
+	sun.light_energy = 0.55
 	sun.shadow_enabled = true
 	stage.add_child(sun)
 	var rim := OmniLight3D.new()
-	rim.position = Vector3(0, 3.0, 3.5)
-	rim.omni_range = 14.0
+	rim.position = Vector3(0, 1.0, 4.5)
+	rim.omni_range = 16.0
 	rim.light_color = Color(1.0, 0.6, 0.3)
 	rim.light_energy = 1.5
 	stage.add_child(rim)
-	Models.box(stage, Vector3(30, 0.1, 10), Mats.flat(Color(0.18, 0.17, 0.16)), Vector3(0, -0.05, 0))
+	Models.box(stage, Vector3(40, 0.1, 30), Mats.flat(Color(0.12, 0.11, 0.1)), Vector3(0, -0.05, -3))
 	var lineup := [["survivor", {"color": Defs.ROLE_COLORS[0], "role": 0, "variant": 0}], ["survivor", {"color": Defs.ROLE_COLORS[1], "role": 1, "variant": 1}],
-		["survivor", {"color": Defs.ROLE_COLORS[2], "role": 2, "variant": 2}], ["elite", {"color": Color(0.6, 0.2, 0.2)}],
-		["killer_tracker", {}], ["killer_brute", {}], ["killer_lurker", {}]]
-	var xs := [-6.2, -4.4, -2.6, -0.8, 1.2, 3.6, 6.2]
+		["survivor", {"color": Defs.ROLE_COLORS[2], "role": 2, "variant": 2}], ["elite", {"color": Color(0.6, 0.2, 0.2)}]]
+	for sl in Defs.KILLER_SLOTS:
+		lineup.append([sl, {}])
 	var models: Array = []
 	for i in lineup.size():
 		var n := Models.make(lineup[i][0], lineup[i][1])
-		n.position = Vector3(xs[i], 0, 0)
-		n.rotation.y = PI + (0.35 if i < 4 else -0.35) * 0.5
+		var killer_row := i >= 4
+		n.position = Vector3((i - 1.5) * 1.6, 0, -6.0) if not killer_row else Vector3((i - 4 - 3.5) * 2.4, 0, 0)
+		n.rotation.y = PI
 		stage.add_child(n)
 		models.append(n)
 	var cam := Camera3D.new()
-	cam.position = Vector3(0, 1.6, 9.0)
-	cam.fov = 55
+	cam.fov = 50
 	stage.add_child(cam)
-	cam.look_at(Vector3(0, 1.1, 0))
 	cam.current = true
+	cam.position = Vector3(0, 1.7, 11.5)
+	cam.look_at(Vector3(0, 1.1, 0))
 	for f in 3:
 		await get_tree().process_frame
-	await _snap_to(dir, "lineup_front")
-	cam.position = Vector3(-3.0, 1.2, 3.6)
-	cam.look_at(Vector3(-1.5, 1.0, 0))
-	await _snap_to(dir, "lineup_survivors_close")
-	cam.position = Vector3(3.8, 1.5, 4.2)
-	cam.look_at(Vector3(4.2, 1.3, 0))
-	await _snap_to(dir, "lineup_killers_close")
+	await _snap_to(dir, "lineup_killers")
+	for k in 4:
+		cam.position = Vector3((k * 2 - 3.5 + 0.5) * 2.4, 1.5, 4.0)
+		cam.look_at(Vector3((k * 2 - 3.5 + 0.5) * 2.4, 1.2, 0))
+		await _snap_to(dir, "lineup_killers_pair%d" % k)
+	cam.position = Vector3(0, 1.4, -1.5)
+	cam.look_at(Vector3(0, 1.0, -6.0))
+	await _snap_to(dir, "lineup_survivors")
 	get_tree().quit()
 
 
