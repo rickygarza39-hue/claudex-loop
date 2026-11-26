@@ -38,6 +38,7 @@ The project uses the **Compatibility** renderer, so it runs on most hardware. On
 | Secondary | RMB: perfect parry (time it as the swing lands) | RMB: signature power |
 | Role ability | Q: Engineer barricade, Medic scent mask, Trapper drop trap | — |
 | Other | F flashlight · B build mode · L lockdown (once) · G give $25 to the poorest duo | R route edit · N unleash the Nest event |
+| Camera | V switches third person (over the shoulder) and first person · X swaps shoulder | Always first person |
 | Map / pause / help | Tab · Esc · F1 | Tab · Esc · F1 |
 
 **Build mode (B).** Choose a structure with the mouse wheel or 1–9, LMB to place, RMB to leave. Press H for the escape hatch (aim at a wall). Engineers press U (spikes) or M (metal) while aiming at their own wall or door.

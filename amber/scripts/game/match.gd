@@ -1122,7 +1122,7 @@ func _update_visibility() -> void:
 				show = false
 			if viewer is Killer and (viewer as Killer).stalking() and (viewer as Killer).ktype == Defs.K.TRACKER:
 				show = false
-		if a == viewer:
+		if a == viewer and not (controller.has_method("shows_own_body") and controller.shows_own_body()):
 			show = false
 		if a.shown != show:
 			a.set_shown(show)

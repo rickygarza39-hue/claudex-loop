@@ -114,7 +114,7 @@ func _setup_input() -> void:
 		"move_forward": [KEY_W, KEY_UP], "move_back": [KEY_S, KEY_DOWN], "move_left": [KEY_A, KEY_LEFT], "move_right": [KEY_D, KEY_RIGHT],
 		"run": [KEY_SHIFT], "crouch": [KEY_CTRL, KEY_C], "interact": [KEY_E], "ability": [KEY_Q], "flashlight": [KEY_F],
 		"build": [KEY_B], "lockdown": [KEY_L], "map": [KEY_TAB, KEY_M], "route": [KEY_R], "nest": [KEY_N], "pause": [KEY_ESCAPE],
-		"help": [KEY_F1], "donate": [KEY_G], "hatch_key": [KEY_H], "upgrade_spikes": [KEY_U], "upgrade_metal": [KEY_M],
+		"help": [KEY_F1], "camera_toggle": [KEY_V], "shoulder_swap": [KEY_X], "donate": [KEY_G], "hatch_key": [KEY_H], "upgrade_spikes": [KEY_U], "upgrade_metal": [KEY_M],
 		"tool_1": [KEY_1], "tool_2": [KEY_2], "tool_3": [KEY_3], "tool_4": [KEY_4], "tool_5": [KEY_5], "tool_6": [KEY_6],
 		"tool_7": [KEY_7], "tool_8": [KEY_8], "tool_9": [KEY_9],
 	}

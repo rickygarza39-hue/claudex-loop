@@ -24,6 +24,14 @@ var ghost: MeshInstance3D
 var build_target := Vector2i(-1, -1)
 var build_error := ""
 var map_open := false
+# Camera: survivors choose third person (over the shoulder) or first person with V;
+# killers and elites are always first person.
+var third_person := true        # the survivor's choice
+var shoulder := 1.0             # 1 right shoulder, -1 left (X swaps)
+var tp_blend := 0.0             # 0 first person .. 1 third person, eased
+const TP_DIST := 3.1
+const TP_SIDE := 0.6
+const TP_UP := 0.3
 
 const BUILD_ORDER := [Defs.B.DOOR, Defs.B.WALL, Defs.B.BARRICADE, Defs.B.ALARM, Defs.B.FLOODLIGHT, Defs.B.DECOY, Defs.B.LOCKER, Defs.B.SNARE, Defs.B.FLASH, Defs.B.HATCH]
 
@@ -70,6 +78,9 @@ func possess(a: Actor) -> void:
 	yaw = a.facing
 	pitch = 0.0
 	build_mode = false
+	if Game.has_arg("first_person"):
+		third_person = false
+	tp_blend = 1.0 if wants_third_person() else 0.0
 	_apply_side_look()
 
 
@@ -90,6 +101,65 @@ func _apply_side_look() -> void:
 		env.ambient_light_color = Color(0.32, 0.38, 0.42)
 		env.ambient_light_energy = 0.11
 		env.fog_light_color = Color(0.1, 0.12, 0.11)
+
+
+## Third person only for survivors, and never while hiding in a locker.
+func wants_third_person() -> bool:
+	if actor == null or not is_instance_valid(actor) or not (actor is Survivor):
+		return false
+	var s := actor as Survivor
+	if s.hidden_in != null:
+		return false
+	if s.is_downed() or s.pinned_by != null:
+		return true             # downed or grabbed: pull out so you can see what's happening
+	return third_person
+
+
+## Match asks this to decide whether to draw the player's own body.
+func shows_own_body() -> bool:
+	return tp_blend > 0.35
+
+
+func _place_third_person(pivot: Vector3, delta: float) -> void:
+	var basis := Basis.from_euler(Vector3(pitch, yaw, 0))
+	var back := basis.z
+	var right := basis.x
+	var want := pivot + right * TP_SIDE * shoulder + Vector3.UP * TP_UP + back * TP_DIST
+	var cpos := _clamp_camera(pivot, want)
+	var fp_pos := pivot
+	var target := fp_pos.lerp(cpos, tp_blend)
+	cam.global_position = target
+	cam.global_rotation = Vector3(pitch, yaw, 0)
+
+
+## Pull the camera in front of walls, below ceilings and above the floor (the world is a tile grid, not physics bodies).
+func _clamp_camera(pivot: Vector3, want: Vector3) -> Vector3:
+	var m := mt.m
+	var best := pivot
+	const STEPS := 24
+	for i in range(1, STEPS + 1):
+		var f := float(i) / STEPS
+		var p := pivot.lerp(want, f)
+		var p2 := Vector2(p.x, p.z)
+		if not m.los(Vector2(pivot.x, pivot.z), pivot.y, p2, p.y):
+			break
+		var tl := MapData.tile_of(p2)
+		if not m.inb(tl.x, tl.y):
+			break
+		var fh := m.tile_height(tl)
+		var rf := m.roof[m.idx(tl.x, tl.y)]
+		if rf == Defs.R.CEILING and p.y > fh + MapData.CEILING_H - 0.3:
+			break
+		if rf == Defs.R.ROOF and p.y > fh + MapData.ROOF_H - 0.3 and pivot.y < fh + MapData.ROOF_H:
+			break
+		if p.y < m.height_at(p2) + 0.35:
+			break
+		best = p
+	# keep a little gap from whatever stopped us
+	var d := best - pivot
+	if best != want and d.length() > 0.4:
+		best = pivot + d * ((d.length() - 0.3) / d.length())
+	return best
 
 
 func on_actor_retired(a: Actor) -> void:
@@ -164,6 +234,10 @@ func update_intents(_dt: float) -> void:
 
 
 func _survivor_actions(s: Survivor) -> void:
+	if Input.is_action_just_pressed("camera_toggle"):
+		third_person = not third_person
+	if Input.is_action_just_pressed("shoulder_swap"):
+		shoulder = -shoulder
 	if Input.is_action_just_pressed("flashlight"):
 		flash_on = not flash_on
 		flashlight.visible = flash_on
@@ -340,16 +414,23 @@ func _process(delta: float) -> void:
 		var sway := sin(bob_t) * 0.02 * (1.0 if moving else 0.0)
 		shake = maxf(0.0, shake - delta * 3.0)
 		var sh := Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * shake * 0.05
-		var base_pos := Vector3(actor.pos.x, actor.y + eye + bob, actor.pos.y)
+		var tp_target := 1.0 if wants_third_person() else 0.0
+		tp_blend = move_toward(tp_blend, tp_target, delta * 4.0)
+		var fp := 1.0 - tp_blend
+		var base_pos := Vector3(actor.pos.x, actor.y + eye + bob * fp, actor.pos.y)
 		if actor is Survivor and (actor as Survivor).hidden_in != null:
 			base_pos.y = actor.y + 1.5
 		global_position = base_pos
 		var right := Vector3(cos(yaw), 0, -sin(yaw))
-		cam.position = right * sway + sh
-		var roll := 0.0
-		if actor is Survivor and (actor as Survivor).is_downed():
-			roll = 0.25
-		cam.rotation = Vector3(pitch, yaw, roll)
+		if tp_blend > 0.0:
+			_place_third_person(base_pos + Vector3(0, -0.15, 0) * tp_blend, delta)
+			cam.global_position += sh
+		else:
+			cam.position = right * sway + sh
+			var roll := 0.0
+			if actor is Survivor and (actor as Survivor).is_downed():
+				roll = 0.25
+			cam.rotation = Vector3(pitch, yaw, roll)
 		var target_fov := 78.0
 		if actor.want_run and moving:
 			target_fov = 84.0
@@ -358,6 +439,13 @@ func _process(delta: float) -> void:
 		cam.fov = lerpf(cam.fov, target_fov, clampf(delta * 6.0, 0.0, 1.0))
 		# flashlight lags a little behind the view
 		flashlight.rotation = flashlight.rotation.lerp(Vector3.ZERO, clampf(delta * 8.0, 0.0, 1.0))
+		if tp_blend > 0.0:
+			# in third person the torch is held at the shoulder, not behind the camera
+			flashlight.global_position = base_pos + right * 0.28 * shoulder + Vector3(0, -0.25, 0) + (-cam.global_transform.basis.z) * 0.3
+			fill_light.global_position = base_pos
+		else:
+			flashlight.position = Vector3(0.18, -0.15, 0)
+			fill_light.position = Vector3.ZERO
 		_update_ghost()
 	elif spectating:
 		_spectate(delta)

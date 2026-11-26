@@ -307,7 +307,7 @@ void fragment() {
 
 
 const HELP_TEXT := """[b][color=#ffb347]SURVIVOR[/color][/b]  WASD move · Shift run (noisy) · Ctrl/C crouch (quiet, harder to see) · E interact (hold) · RMB perfect parry (time it as a swing lands)
-LMB use tool · 1 flare gun · 2 snare · 3 flash trap · Q role ability · F flashlight · B build mode · L lockdown · G give $25 to the poorest duo · Tab map
+LMB use tool · 1 flare gun · 2 snare · 3 flash trap · Q role ability · F flashlight · B build mode · L lockdown · G give $25 to the poorest duo · V third/first person · X swap shoulder · Tab map
 Goal: escape your cell, set up a base (hold E on open ground), find radio parts, build Antenna → Generator → Transmitter, call the helicopter and board it together.
 Two hits put you down. Crawl home for 2 extra minutes; only a cure or your Medic partner can save you, or you turn.
 
