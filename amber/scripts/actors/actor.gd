@@ -41,6 +41,7 @@ var vel := Vector2.ZERO
 var anim_phase := 0.0
 var anim_attack := 0.0   # 0..1 arm swing for attacks
 var in_gap := false
+var airborne := false        # mid drop-down: height is set by the fall, not the ground
 var in_water := false
 var crouch_amount := 0.0
 var downed_pose := 0.0
@@ -313,6 +314,11 @@ func set_shown(v: bool) -> void:
 
 
 func _sync_transform(dt: float) -> void:
+	if airborne:
+		position = Vector3(pos.x, y, pos.y)
+		if model_root:
+			model_root.rotation.y = facing
+		return
 	var target_y := mt.m.height_at(pos)
 	if in_water:
 		target_y -= 0.32

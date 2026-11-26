@@ -121,7 +121,11 @@ func spotted() -> bool:
 
 
 func uses_gaps() -> bool:
-	return elite and ktype == Defs.K.LURKER and slot != null and slot.perk("Vents") > 0
+	## The Lurker is the one killer who can crawl through survivor crevices (slowly).
+	## Elite Lurkers need the Vents skill for it.
+	if ktype != Defs.K.LURKER or husk:
+		return false
+	return is_main() or (slot != null and slot.perk("Vents") > 0)
 
 
 func perk(branch: String) -> int:
@@ -148,6 +152,8 @@ func move_speed() -> float:
 		s = Tuning.KILLER_SPEED[ktype]
 	if stalking():
 		s = Tuning.STALK_SPEED if is_main() else Tuning.STALK_SPEED * 0.85
+	if in_gap:
+		s = Tuning.LURKER_SQUEEZE * (1.0 + meta("k_squeeze"))
 	if atk_state == "windup":
 		s *= Tuning.WINDUP_MOVE
 	elif atk_state == "recover":
@@ -410,7 +416,7 @@ func _tick_power(dt: float) -> void:
 				return
 			tongue_tip = next
 			for s in mt.living_survivors():
-				if s.is_downed() or s.hidden_in != null or s.pinned_by != null:
+				if s.is_downed() or s.hidden_in != null or s.pinned_by != null or s.dropping():
 					continue
 				if s.pos.distance_to(tongue_tip) < s.radius + 0.45:
 					tongue_victim = s

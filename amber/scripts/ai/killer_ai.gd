@@ -458,7 +458,7 @@ func _chase(_dt: float) -> void:
 	if d < Tuning.ATTACK_RANGE + 1.2 and k.atk_state == "":
 		k.want_attack = mt.rng.randf() < 0.35
 	# target vanished into a squeeze gap? seal it sometimes
-	if k.is_main() and route_cd <= 0.0 and k.route_charges > 1 and d < 6.0:
+	if k.is_main() and not k.uses_gaps() and route_cd <= 0.0 and k.route_charges > 1 and d < 6.0:
 		for dy in range(-1, 2):
 			for dx in range(-1, 2):
 				var tl := MapData.tile_of(target.pos) + Vector2i(dx, dy)

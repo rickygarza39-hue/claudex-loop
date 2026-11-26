@@ -30,6 +30,14 @@ func _survivor_options(s: Survivor) -> Array:
 	if s.slot.outcome != "":
 		return out
 	var tm := mt.time
+	if s.dropping():
+		return out
+	# ledges you can drop from (one way: killers can't follow)
+	for d in mt.m.drops:
+		var top := MapData.center_of(d["top"])
+		var edge := top + Vector2(d["tile"] - d["top"]) * 0.8
+		if s.pos.distance_to(edge) < 1.9 and s.health != Defs.Health.DOWNED:
+			out.append(_opt("drop", "Drop down: killers can't follow (press E again as you land)", edge, 0.0, d, "", 8))
 	if s.hidden_in != null:
 		out.append(_opt("unhide", "Leave the locker", s.hidden_in.pos, 0.0, s.hidden_in, "", 10))
 		return out
@@ -296,6 +304,8 @@ func _on_begin(a: Actor, ch: Dictionary) -> void:
 func _finish(a: Actor, o: Dictionary) -> void:
 	var tgt = o["target"]
 	match o["id"]:
+		"drop":
+			mt.start_drop(a as Survivor, tgt)
 		"pickup":
 			mt.pickup(a as Survivor, tgt)
 		"claim":

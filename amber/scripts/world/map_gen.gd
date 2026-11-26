@@ -55,6 +55,7 @@ func generate(seed_value: int) -> MapData:
 	_terminals()
 	_items()
 	_lights_and_amber()
+	_drops()
 	m.build_zone_index()
 	return m
 
@@ -1154,12 +1155,57 @@ func _gaps() -> void:
 	_shuffle(cand)
 	var made: Array = []
 	for p in cand:
-		if made.size() >= 46:
+		if made.size() >= Tuning.GAP_COUNT:
 			break
-		if _dist_to_set(p, made) < 5.0:
+		if _dist_to_set(p, made) < Tuning.GAP_SPACING:
 			continue
 		m.tiles[m.idx(p.x, p.y)] = Defs.T.GAP
 		made.append(p)
+
+
+## One-way drop-downs: single-tile cliff edges with high ground on one side and
+## open floor below on the other, where walking round would take a long way.
+## Uses its own RNG so the rest of the map doesn't change.
+func _drops() -> void:
+	var r := RandomNumberGenerator.new()
+	r.seed = m.seed * 31 + 991
+	var cand: Array = []
+	for y in range(1, m.h - 1):
+		for x in range(1, m.w - 1):
+			if m.t(x, y) != Defs.T.CLIFF:
+				continue
+			for pair in [[Vector2i(x - 1, y), Vector2i(x + 1, y)], [Vector2i(x, y - 1), Vector2i(x, y + 1)]]:
+				var a: Vector2i = pair[0]
+				var b: Vector2i = pair[1]
+				if not (m.walkable(a.x, a.y, false) and m.walkable(b.x, b.y, false)):
+					continue
+				var ha := m.tile_height(a)
+				var hb := m.tile_height(b)
+				if absf(ha - hb) < 1.5:
+					continue
+				var top := a if ha > hb else b
+				var bot := b if ha > hb else a
+				if m.t(bot.x, bot.y) != Defs.T.FLOOR or m.t(top.x, top.y) != Defs.T.FLOOR:
+					continue
+				var d := _walk_dist(top, bot, 14)
+				if d >= 0:
+					continue          # only real shortcuts
+				cand.append({"tile": Vector2i(x, y), "top": top, "bottom": bot})
+	for i in range(cand.size() - 1, 0, -1):
+		var j := r.randi_range(0, i)
+		var tmp = cand[i]
+		cand[i] = cand[j]
+		cand[j] = tmp
+	for c in cand:
+		if m.drops.size() >= Tuning.DROP_COUNT:
+			break
+		var ok := true
+		for o in m.drops:
+			if Vector2(o["tile"] - c["tile"]).length() < Tuning.DROP_SPACING:
+				ok = false
+				break
+		if ok:
+			m.drops.append(c)
 
 
 func _walk_dist(a: Vector2i, b: Vector2i, limit: int) -> int:

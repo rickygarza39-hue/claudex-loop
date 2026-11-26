@@ -88,6 +88,15 @@ func setup(config: Dictionary, with_visuals: bool) -> void:
 	_spawn_items()
 	_spawn_actors()
 	_apply_loadouts()
+	if visuals:
+		for d in m.drops:
+			var lm := Models.make("drop_ledge")
+			var top := MapData.center_of(d["top"])
+			var dir := Vector2(d["tile"] - d["top"])
+			var at := top + dir * 0.75
+			lm.position = Vector3(at.x, m.tile_height(d["top"]), at.y)
+			lm.rotation.y = Actor.yaw_of(dir)
+			add_child(lm)
 	_shift_hotzones()
 	feed_all("Escape your quarantine cell. The killers are released in %d seconds." % int(Tuning.KILLER_RELEASE), "alert", 7.0)
 
@@ -129,6 +138,46 @@ func _give_item(s: Survivor, item: String) -> void:
 			s.traps[1] = mini(s.traps[1] + 1, s.trap_capacity())
 		"scanner":
 			s.scanner += 1
+
+
+func start_drop(s: Survivor, d: Dictionary) -> void:
+	if not s.can_act():
+		return
+	s.start_drop(d)
+	make_noise(s.pos, 6.0, "drop", s)
+	if s.slot.is_human and hud and hud.has_method("toast"):
+		hud.toast("Press E as you land to roll!")
+	# bots commit their timing now: better bots land cleanly more often
+	if not s.slot.is_human:
+		var skill: float = brains[s].skill if brains.has(s) else 0.5
+		var w := s.landing_window()
+		if rng.randf() < 0.5 + 0.4 * skill:
+			s.drop["press"] = rng.randf_range(w[0] + 0.03, w[1] - 0.02)
+		else:
+			s.drop["press"] = rng.randf_range(0.1, w[0] - 0.05)
+
+
+func on_drop_landed(s: Survivor, clean: bool) -> void:
+	log_event("%s dropped off a ledge (%s)" % [s.slot.name, "clean" if clean else "hurt"])
+	if clean:
+		s.boost_until = maxf(s.boost_until, time + Tuning.DROP_ROLL_BOOST)
+		make_noise(s.pos, 7.0, "drop", s)
+		if s.slot.is_human and hud:
+			hud.toast("Clean landing!")
+	else:
+		# a bad landing hurts, but never downs you
+		make_noise(s.pos, 15.0, "scream", s)
+		s.slow_until = time + Tuning.DROP_FAIL_SLOW
+		if s.health == Defs.Health.HEALTHY:
+			s.health = Defs.Health.WOUNDED
+		if sfx != null:
+			sfx.play3d("thud", Vector3(s.pos.x, s.y + 0.5, s.pos.y), 0.0)
+		if s.slot.is_human and hud:
+			hud.toast("Bad landing: you're hurt and limping.")
+			if "hurt" in hud:
+				hud.hurt.color.a = 0.45
+	if s.slot.is_human and controller and controller.has_method("hit_feedback"):
+		controller.hit_feedback(0.25 if clean else 0.8)
 
 
 func use_medkit(s: Survivor) -> bool:

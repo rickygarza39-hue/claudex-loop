@@ -31,6 +31,7 @@ static func build(slot: String, root: Node3D, o: Dictionary) -> void:
 		"build_decoy": _decoy(root)
 		"build_locker": _locker(root)
 		"build_hatch": _hatch(root)
+		"drop_ledge": _drop_ledge(root)
 		_:
 			Models.box(root, Vector3(0.5, 0.5, 0.5), Mats.flat(Color(1, 0, 1)), Vector3(0, 0.25, 0))
 
@@ -117,6 +118,23 @@ static func _terminal(r: Node3D) -> void:
 	var lamp := Models.sphere(r, 0.08, Mats.get_mat("lamp_red"), Vector3(0, 2.0, 0))
 	lamp.name = "Lamp"
 	Models.box(r, Vector3(0.75, 0.2, 0.05), Mats.flat(Color(0.75, 0.55, 0.15), 0.4), Vector3(0, 1.78, -0.26))
+
+
+static func _drop_ledge(r: Node3D) -> void:
+	## Broken railing at a cliff edge with hazard paint: survivors can jump here.
+	var wood := Mats.get_mat("crate")
+	var paint := Mats.flat(Color(0.95, 0.75, 0.1), 0.15)
+	var dark := Mats.flat(Color(0.08, 0.08, 0.08))
+	for x in [-0.85, 0.85]:
+		Models.box(r, Vector3(0.12, 1.05, 0.12), wood, Vector3(x, 0.52, 0))
+	# the rail snapped in the middle and hangs over the edge
+	Models.box(r, Vector3(0.85, 0.08, 0.08), wood, Vector3(-0.45, 0.95, 0), Vector3(0, 0, -0.25))
+	Models.box(r, Vector3(0.8, 0.08, 0.08), wood, Vector3(0.5, 0.78, -0.1), Vector3(0.3, 0, 0.55))
+	# hazard stripes painted on the lip
+	for i in 6:
+		Models.box(r, Vector3(0.3, 0.02, 0.35), paint if i % 2 == 0 else dark, Vector3(-0.75 + i * 0.3, 0.01, -0.2))
+	# a rope tied to a post, dangling down the cliff
+	Models.cyl(r, 0.025, 0.025, 1.6, Mats.flat(Color(0.55, 0.45, 0.3)), Vector3(0.85, 0.2, -0.45), Vector3(0.35, 0, 0))
 
 
 static func _nest(r: Node3D) -> void:

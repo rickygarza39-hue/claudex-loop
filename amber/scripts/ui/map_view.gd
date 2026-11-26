@@ -133,6 +133,13 @@ func _draw() -> void:
 				Defs.Item.FLARE:
 					draw_circle(ip, 5.0, Color(1.0, 0.2, 0.1))
 					_txt(ip + Vector2(0, -7), "FLARE", Color(1, 0.4, 0.3), 10)
+		# drop-downs: one-way ledges, arrow points down the cliff
+		for d in m.drops:
+			var a := w2s(MapData.center_of(d["top"]))
+			var b := w2s(MapData.center_of(d["bottom"]))
+			draw_line(a, b, Color(0.4, 0.85, 1.0), 2.0)
+			var dir := (b - a).normalized()
+			draw_colored_polygon(PackedVector2Array([b, b - dir * 6 + dir.orthogonal() * 4, b - dir * 6 - dir.orthogonal() * 4]), Color(0.4, 0.85, 1.0))
 	else:
 		# killers: vague hot zones and recent noises
 		for hz in mt.hotzones:
@@ -168,7 +175,7 @@ func _draw() -> void:
 	# legend
 	var lg := "Hold Tab: map   ·   "
 	if as_survivor:
-		lg += "Parts spawn: Cable — town · Fuel — mine entrances · Spark plug — old vehicles · Circuit — flooded lab · Power cell — deep mines · Dish — watchtower & cliffs   ·   yellow = squeeze gaps"
+		lg += "Parts spawn: Cable — town · Fuel — mine entrances · Spark plug — old vehicles · Circuit — flooded lab · Power cell — deep mines · Dish — watchtower & cliffs   ·   yellow = squeeze gaps · blue arrows = drop-downs (one way)"
 	elif viewer is Killer:
 		lg += "Red haze: knockdown-item hot zones (they shift) · rings: recent noises · squares: bases you know about"
 	_txt(Vector2(size.x * 0.5, size.y - 18), lg, Color(0.9, 0.85, 0.75), 13)

@@ -31,6 +31,7 @@ var last_seen_by_killer := -100.0
 var slow_until := -1.0
 var downed_by: Killer = null
 var revealed_until := -1.0  # Pulse event
+var drop := {}               # mid drop-down: {from, to, h0, h1, t, press}
 
 
 func _build_model() -> void:
@@ -65,15 +66,19 @@ func is_downed() -> bool:
 
 
 func can_act() -> bool:
-	return health != Defs.Health.DOWNED and pinned_by == null and mt.time >= dazed_until and hidden_in == null
+	return health != Defs.Health.DOWNED and pinned_by == null and mt.time >= dazed_until and hidden_in == null and drop.is_empty()
 
 
 func crouched() -> bool:
 	return want_crouch or in_gap
 
 
+func dropping() -> bool:
+	return not drop.is_empty()
+
+
 func move_speed() -> float:
-	if pinned_by != null or mt.time < dazed_until or hidden_in != null:
+	if pinned_by != null or mt.time < dazed_until or hidden_in != null or not drop.is_empty():
 		return 0.0
 	if not channel.is_empty():
 		return 0.0
@@ -178,6 +183,8 @@ func cancel_channel() -> void:
 
 func tick(dt: float) -> void:
 	var tm := mt.time
+	if not drop.is_empty():
+		_update_drop(dt)
 	if health == Defs.Health.DOWNED:
 		turn_left -= dt
 		if duo.base != null and duo.base.contains(pos) and not base_bonus_given:
@@ -198,6 +205,43 @@ func tick(dt: float) -> void:
 	crouch_amount = move_toward(crouch_amount, 1.0 if (crouched() and health != Defs.Health.DOWNED) else 0.0, dt * 5.0)
 	downed_pose = move_toward(downed_pose, 1.0 if health == Defs.Health.DOWNED else 0.0, dt * 3.0)
 	noise_cd -= dt
+
+
+## Starts a drop-down off a ledge. Killers can't follow; the landing is timed.
+func start_drop(d: Dictionary) -> void:
+	cancel_channel()
+	var from := MapData.center_of(d["top"])
+	var to := MapData.center_of(d["bottom"])
+	drop = {"from": pos, "to": to, "h0": mt.m.tile_height(d["top"]), "h1": mt.m.tile_height(d["bottom"]), "t": 0.0, "press": -1.0}
+	facing = Actor.yaw_of(to - from)
+	airborne = true
+	in_gap = false
+
+
+## Interact pressed while falling: commits the landing timing (once).
+func press_landing() -> void:
+	if not drop.is_empty() and drop["press"] < 0.0:
+		drop["press"] = drop["t"]
+
+
+func landing_window() -> Array:
+	return [Tuning.DROP_TIME - Tuning.DROP_WINDOW, Tuning.DROP_TIME]
+
+
+func _update_drop(dt: float) -> void:
+	drop["t"] += dt
+	var f := clampf(drop["t"] / Tuning.DROP_TIME, 0.0, 1.0)
+	pos = (drop["from"] as Vector2).lerp(drop["to"], smoothstep(0.0, 1.0, f))
+	# a short hop off the edge, then gravity
+	y = lerpf(drop["h0"], drop["h1"], f * f) + sin(f * PI) * 0.45
+	if f >= 1.0:
+		var p: float = drop["press"]
+		var w := landing_window()
+		var clean: bool = p >= w[0] and p <= w[1]
+		drop = {}
+		airborne = false
+		y = mt.m.height_at(pos)
+		mt.on_drop_landed(self, clean)
 
 
 func _post_move(dt: float) -> void:

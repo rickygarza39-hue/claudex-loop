@@ -34,6 +34,7 @@ var amber: Array = []        # Vector3 crystal clusters
 var decor: Array = []        # {kind, pos: Vector3, rot: float}
 var items: Array = []        # {kind, part, tile: Vector2i, amount}
 var mine_entrances: Array = []
+var drops: Array = []        # one-way drop-downs: {tile (the cliff), top, bottom}
 var zone_tiles := {}         # zone -> Array[Vector2i] of walkable tiles (filled after gen)
 
 

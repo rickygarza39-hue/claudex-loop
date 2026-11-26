@@ -42,6 +42,7 @@ const SLOTS := {
 	"build_decoy": [0.6, "Noise decoy"],
 	"build_locker": [2.0, "Hiding locker"],
 	"build_hatch": [1.2, "Escape hatch"],
+	"drop_ledge": [1.1, "Drop-down ledge marker at a cliff edge: broken railing, faces -Z (the drop)"],
 	"vehicle": [1.5, "Abandoned car or truck (length about 4 m)"],
 	"telegraph_pole": [7.0, "Telegraph pole"],
 	"lantern_post": [2.9, "Lantern on a post"],

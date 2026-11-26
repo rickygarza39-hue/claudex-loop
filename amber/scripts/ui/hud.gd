@@ -13,6 +13,7 @@ var root: Control
 var crosshair: Control
 var prompt: Label
 var prompt_bar: ProgressBar
+var drop_zone: ColorRect     # the landing window on the drop-down timing bar
 var status: Label
 var tools: Label
 var duo_panel: PanelContainer
@@ -145,6 +146,11 @@ void fragment() {
 	prompt_bar.show_percentage = false
 	prompt_bar.max_value = 1.0
 	prompt_bar.visible = false
+	drop_zone = ColorRect.new()
+	drop_zone.color = Color(0.3, 1.0, 0.4, 0.45)
+	drop_zone.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	drop_zone.visible = false
+	prompt_bar.add_child(drop_zone)
 	var fill := StyleBoxFlat.new()
 	fill.bg_color = Color(1.0, 0.62, 0.15)
 	fill.set_corner_radius_all(3)
@@ -431,8 +437,24 @@ func _update_prompt() -> void:
 	var a := pc.actor
 	prompt.text = ""
 	prompt_bar.visible = false
+	if drop_zone:
+		drop_zone.visible = false
 	if a == null or not is_instance_valid(a) or pc.ui_block:
 		return
+	# drop-down landing: the bar fills as you fall; press E inside the green zone
+	if a is Survivor and (a as Survivor).dropping():
+		var sv := a as Survivor
+		var w := sv.landing_window()
+		var pressed: float = sv.drop["press"]
+		prompt.text = "PRESS E AS YOU LAND" if pressed < 0.0 else ("Rolling..." if pressed >= w[0] else "Too early!")
+		prompt.label_settings.font_color = Color(0.6, 1, 0.6) if pressed < 0.0 or pressed >= w[0] else Color(1, 0.5, 0.4)
+		prompt_bar.visible = true
+		prompt_bar.value = clampf(sv.drop["t"] / Tuning.DROP_TIME, 0.0, 1.0)
+		drop_zone.visible = true
+		drop_zone.position = Vector2(prompt_bar.size.x * w[0] / Tuning.DROP_TIME, -3)
+		drop_zone.size = Vector2(prompt_bar.size.x * (w[1] - w[0]) / Tuning.DROP_TIME, prompt_bar.size.y + 6)
+		return
+	drop_zone.visible = false
 	if not a.channel.is_empty():
 		var ch := a.channel
 		prompt.text = ch["label"]

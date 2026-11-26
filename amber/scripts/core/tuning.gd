@@ -20,6 +20,16 @@ const SURV_RUN := 4.1
 const SURV_CROUCH := 1.7
 const SURV_CRAWL := 0.9
 const SURV_SQUEEZE := 2.0
+const LURKER_SQUEEZE := 1.5        # the one killer who can crawl through crevices, slower than survivors
+const GAP_COUNT := 70              # survivor crevices per map
+const GAP_SPACING := 4.0           # tiles between crevices
+# One-way drop-downs off the high-ground cliffs. Killers can't follow.
+const DROP_COUNT := 16
+const DROP_SPACING := 7.0          # tiles
+const DROP_TIME := 0.7             # seconds in the air
+const DROP_WINDOW := 0.28          # press interact in the last part of the fall to land in a roll
+const DROP_ROLL_BOOST := 1.2       # seconds of burst speed after a clean landing
+const DROP_FAIL_SLOW := 3.0        # seconds limping after a bad landing
 const SURV_WOUND_BOOST := 6.2
 const SURV_WOUND_BOOST_TIME := 2.6
 const WATER_MULT := 0.72

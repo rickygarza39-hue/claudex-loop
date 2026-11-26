@@ -48,6 +48,7 @@ var steal_ok := false
 var unreachable := {}
 var dodge_t := 0.0
 var dodge_dir := Vector2.ZERO
+var pending_drop := {}      # a ledge we're running to so we can drop off it
 
 
 func _init(match_ref: Match, sv: Survivor) -> void:
@@ -815,9 +816,29 @@ func _cover_point(from: Vector2, rmin: float, rmax: float) -> Vector2:
 	return best
 
 
+func _drop_escape(from: Vector2) -> Dictionary:
+	## A ledge we reach well before the killer, whose landing is away from them.
+	var best: Dictionary = {}
+	var best_d := INF
+	for d in mt.m.drops:
+		var edge := MapData.center_of(d["top"])
+		var dm := edge.distance_to(s.pos)
+		if dm > 16.0 or dm > edge.distance_to(from) - 3.0:
+			continue
+		if MapData.center_of(d["bottom"]).distance_to(from) < 10.0:
+			continue
+		if dm < best_d:
+			best_d = dm
+			best = d
+	return best
+
+
 func _gap_escape(from: Vector2) -> Vector2:
 	## A squeeze gap we reach before the killer, exiting on the far side.
 	var best := Vector2(INF, INF)
+	# the Lurker crawls through crevices too: a gap only buys time against it when it's far
+	if threat != null and threat is Killer and (threat as Killer).uses_gaps() and threat.pos.distance_to(s.pos) < 9.0:
+		return best
 	var best_score := -INF
 	for g in mt.gap_tiles:
 		if mt.m.tv(g) != Defs.T.GAP:
@@ -850,6 +871,14 @@ func _flee(dt: float) -> void:
 	var from := threat_pos
 	if threat != null:
 		from = threat.pos
+	# reached the ledge we were running for: jump
+	if not pending_drop.is_empty():
+		var edge := MapData.center_of(pending_drop["top"]) + Vector2(pending_drop["tile"] - pending_drop["top"]) * 0.8
+		if s.pos.distance_to(edge) < 1.6 and s.can_act():
+			mt.start_drop(s, pending_drop)
+			pending_drop = {}
+			flee_target = Vector2(INF, INF)
+			return
 	var bad_dir := false
 	if flee_target.x < INF:
 		var to_t := flee_target - s.pos
@@ -858,6 +887,18 @@ func _flee(dt: float) -> void:
 			bad_dir = true
 	if flee_repick <= 0.0 or flee_target.x == INF or s.pos.distance_to(flee_target) < 2.0 or bad_dir:
 		flee_repick = 3.5
+		pending_drop = {}
+		var dr := _drop_escape(from)
+		if not dr.is_empty():
+			pending_drop = dr
+			flee_target = MapData.center_of(dr["top"]) + Vector2(dr["tile"] - dr["top"]) * 0.8
+			if not _go(flee_target, 0.0):
+				flee_target = Vector2(INF, INF)
+				pending_drop = {}
+			else:
+				s.want_run = true
+				s.want_crouch = false
+				return
 		var gap_exit := _gap_escape(from)
 		if gap_exit.x < INF:
 			flee_target = gap_exit
