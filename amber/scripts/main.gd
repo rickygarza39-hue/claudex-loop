@@ -26,6 +26,9 @@ func _ready() -> void:
 	if Game.has_arg("video"):
 		_video(Game.arg("video"))
 		return
+	if Game.has_arg("lineup"):
+		_lineup(Game.arg("lineup"))
+		return
 	if Game.has_arg("soak"):
 		_soak(Game.arg("soak"))
 		return
@@ -44,8 +47,85 @@ func _show_menu() -> void:
 	add_child(menu_layer)
 	menu = MainMenu.new()
 	menu_layer.add_child(menu)
-	menu.start.connect(_start)
+	menu.start.connect(_start_with_loading)
 	menu.quit_game.connect(func(): get_tree().quit())
+
+
+const LOADING_TIPS := [
+	"Drop off a ledge to lose a killer, and press E again as you land to roll.",
+	"Squeeze through cracks in the walls. Only the Lurker can crawl in after you.",
+	"Radio stages need parts, not money. Money builds walls, doors and traps.",
+	"Your loadout is set before the match. Unlock items in the Survivor Kit tree.",
+	"A perfect parry needs timing: press right mouse button as the swing lands.",
+	"Calling the helicopter alerts the whole map. Hold the landing zone together.",
+	"Killers tire after a long chase. Keep running.",
+	"Every match earns Amber, win or lose. Spend it in the skill trees.",
+]
+
+
+## The menu's way in: shows a loading screen while the map and world are built.
+func _start_with_loading(cfg: Dictionary) -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 50
+	add_child(layer)
+	var bg := ColorRect.new()
+	bg.color = Color(0.02, 0.015, 0.01)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(bg)
+	var box := VBoxContainer.new()
+	box.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	box.position = Vector2(-450, -120)
+	box.custom_minimum_size = Vector2(900, 240)
+	box.add_theme_constant_override("separation", 22)
+	layer.add_child(box)
+	var title := Label.new()
+	title.text = "ENTERING THE QUARANTINE ZONE"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var ts := LabelSettings.new()
+	ts.font_size = 44
+	ts.font_color = Defs.AMBER
+	ts.shadow_size = 18
+	ts.shadow_color = Color(1.0, 0.45, 0.0, 0.3)
+	title.label_settings = ts
+	box.add_child(title)
+	var sub := Label.new()
+	sub.text = "Seed %d  ·  generating the town, the mines and the lab..." % int(cfg.get("seed", 0))
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var ss := LabelSettings.new()
+	ss.font_size = 18
+	ss.font_color = Color(0.75, 0.7, 0.62)
+	sub.label_settings = ss
+	box.add_child(sub)
+	var bar := ProgressBar.new()
+	bar.custom_minimum_size = Vector2(900, 10)
+	bar.show_percentage = false
+	bar.value = 35
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = Color(0.9, 0.5, 0.1)
+	bar.add_theme_stylebox_override("fill", fill)
+	box.add_child(bar)
+	var tip := Label.new()
+	tip.text = "TIP: " + LOADING_TIPS[randi() % LOADING_TIPS.size()]
+	tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	tip.custom_minimum_size = Vector2(900, 0)
+	var tps := LabelSettings.new()
+	tps.font_size = 20
+	tps.font_color = Color(0.9, 0.86, 0.78)
+	tip.label_settings = tps
+	box.add_child(tip)
+	# let the screen draw before the heavy build blocks the frame
+	for i in 3:
+		await get_tree().process_frame
+	_start(cfg)
+	bar.value = 100
+	sub.text = "Ready."
+	await get_tree().process_frame
+	var tw := create_tween()
+	tw.tween_property(bg, "modulate:a", 0.0, 0.6)
+	tw.parallel().tween_property(box, "modulate:a", 0.0, 0.4)
+	await tw.finished
+	layer.queue_free()
 
 
 func _start(cfg: Dictionary) -> void:
@@ -69,7 +149,7 @@ func _start(cfg: Dictionary) -> void:
 		var c := last_cfg.duplicate()
 		c["seed"] = randi() % 100000
 		_teardown()
-		_start(c))
+		_start_with_loading(c))
 	if mt.player_slot != null and mt.player_slot.actor != null:
 		pc.possess(mt.player_slot.actor)
 	else:
@@ -338,6 +418,67 @@ func _record(seconds: float, show_map: bool = false) -> void:
 	while mt != null and not mt.over and mt.time < end_t:
 		await get_tree().process_frame
 	hud.force_map = false
+
+
+# Character lineup (--lineup=DIR): every character model side by side, in a few poses.
+func _lineup(dir: String) -> void:
+	DirAccess.make_dir_recursive_absolute(dir)
+	var stage := Node3D.new()
+	add_child(stage)
+	var env := WorldEnvironment.new()
+	env.environment = Environment.new()
+	env.environment.background_mode = Environment.BG_COLOR
+	env.environment.background_color = Color(0.06, 0.06, 0.07)
+	env.environment.ambient_light_color = Color(0.5, 0.5, 0.55)
+	env.environment.ambient_light_energy = 0.6
+	env.environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.environment.glow_enabled = true
+	stage.add_child(env)
+	var sun := DirectionalLight3D.new()
+	sun.rotation = Vector3(-0.8, 0.5, 0)
+	sun.light_energy = 1.3
+	sun.shadow_enabled = true
+	stage.add_child(sun)
+	var rim := OmniLight3D.new()
+	rim.position = Vector3(0, 3.0, 3.5)
+	rim.omni_range = 14.0
+	rim.light_color = Color(1.0, 0.6, 0.3)
+	rim.light_energy = 1.5
+	stage.add_child(rim)
+	Models.box(stage, Vector3(30, 0.1, 10), Mats.flat(Color(0.18, 0.17, 0.16)), Vector3(0, -0.05, 0))
+	var lineup := [["survivor", {"color": Defs.ROLE_COLORS[0], "role": 0, "variant": 0}], ["survivor", {"color": Defs.ROLE_COLORS[1], "role": 1, "variant": 1}],
+		["survivor", {"color": Defs.ROLE_COLORS[2], "role": 2, "variant": 2}], ["elite", {"color": Color(0.6, 0.2, 0.2)}],
+		["killer_tracker", {}], ["killer_brute", {}], ["killer_lurker", {}]]
+	var xs := [-6.2, -4.4, -2.6, -0.8, 1.2, 3.6, 6.2]
+	var models: Array = []
+	for i in lineup.size():
+		var n := Models.make(lineup[i][0], lineup[i][1])
+		n.position = Vector3(xs[i], 0, 0)
+		n.rotation.y = PI + (0.35 if i < 4 else -0.35) * 0.5
+		stage.add_child(n)
+		models.append(n)
+	var cam := Camera3D.new()
+	cam.position = Vector3(0, 1.6, 9.0)
+	cam.fov = 55
+	stage.add_child(cam)
+	cam.look_at(Vector3(0, 1.1, 0))
+	cam.current = true
+	for f in 3:
+		await get_tree().process_frame
+	await _snap_to(dir, "lineup_front")
+	cam.position = Vector3(-3.0, 1.2, 3.6)
+	cam.look_at(Vector3(-1.5, 1.0, 0))
+	await _snap_to(dir, "lineup_survivors_close")
+	cam.position = Vector3(3.8, 1.5, 4.2)
+	cam.look_at(Vector3(4.2, 1.3, 0))
+	await _snap_to(dir, "lineup_killers_close")
+	get_tree().quit()
+
+
+func _snap_to(dir: String, name: String) -> void:
+	await get_tree().process_frame
+	await get_tree().process_frame
+	get_viewport().get_texture().get_image().save_png("%s/%s.png" % [dir, name])
 
 
 # Soak test (--soak=survivor|killer|watch): a whole match with the HUD, map and

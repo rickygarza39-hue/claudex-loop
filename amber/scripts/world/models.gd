@@ -215,12 +215,12 @@ static func _placeholder(slot: String, o: Dictionary) -> Node3D:
 	var root := Node3D.new()
 	root.name = slot
 	match slot:
-		"survivor": _survivor(root, o)
-		"killer_tracker": _tracker(root, o)
-		"killer_brute": _brute(root, o)
-		"killer_lurker": _lurker(root, o)
-		"elite": _elite(root, o)
-		"husk": _husk(root, o)
+		"survivor": CharacterModels.survivor(root, o)
+		"killer_tracker": CharacterModels.tracker(root, o)
+		"killer_brute": CharacterModels.brute(root, o)
+		"killer_lurker": CharacterModels.lurker(root, o)
+		"elite": CharacterModels.elite(root, o)
+		"husk": CharacterModels.husk(root, o)
 		"vehicle": _vehicle(root, o)
 		"telegraph_pole": _pole(root)
 		"lantern_post": _lantern_post(root)
@@ -233,128 +233,6 @@ static func _placeholder(slot: String, o: Dictionary) -> Node3D:
 			# objects are defined in ObjectModels to keep this file manageable
 			ObjectModels.build(slot, root, o)
 	return root
-
-
-static func _survivor(root: Node3D, o: Dictionary) -> void:
-	var jacket: Color = o.get("color", Color(0.5, 0.45, 0.35))
-	var skin := Mats.flat(Color(0.75, 0.58, 0.45))
-	var cloth := Mats.flat(jacket, 0.0, 0.85)
-	var pants := Mats.flat(Color(0.16, 0.17, 0.2))
-	var boots := Mats.flat(Color(0.1, 0.08, 0.07))
-	var hips := pivot(root, "Hips", Vector3(0, 0.92, 0))
-	var leg_l := pivot(hips, "LegL", Vector3(-0.11, 0, 0))
-	var leg_r := pivot(hips, "LegR", Vector3(0.11, 0, 0))
-	for leg in [leg_l, leg_r]:
-		capsule(leg, 0.075, 0.86, pants, Vector3(0, -0.43, 0))
-		box(leg, Vector3(0.13, 0.1, 0.26), boots, Vector3(0, -0.87, -0.04))
-	var torso := pivot(hips, "Torso", Vector3(0, 0.0, 0))
-	box(torso, Vector3(0.42, 0.58, 0.24), cloth, Vector3(0, 0.32, 0))
-	box(torso, Vector3(0.3, 0.38, 0.14), Mats.flat(jacket.darkened(0.45)), Vector3(0, 0.3, 0.17))  # backpack
-	var head := pivot(torso, "Head", Vector3(0, 0.72, 0))
-	sphere(head, 0.12, skin, Vector3(0, 0.0, 0), Vector3(0.95, 1.1, 1.0))
-	sphere(head, 0.125, Mats.flat(Color(0.12, 0.09, 0.07)), Vector3(0, 0.05, 0.02), Vector3(1.0, 0.75, 1.0))  # hair
-	var arm_l := pivot(torso, "ArmL", Vector3(-0.27, 0.56, 0))
-	var arm_r := pivot(torso, "ArmR", Vector3(0.27, 0.56, 0))
-	for arm in [arm_l, arm_r]:
-		capsule(arm, 0.06, 0.62, cloth, Vector3(0, -0.29, 0))
-		sphere(arm, 0.055, skin, Vector3(0, -0.6, 0))
-	# flashlight in the right hand
-	cyl(arm_r, 0.03, 0.03, 0.2, Mats.flat(Color(0.15, 0.15, 0.15), 0.0, 0.4, 0.6), Vector3(0, -0.62, -0.08), Vector3(PI * 0.5, 0, 0))
-	root.set_meta("rig", "biped")
-
-
-static func _killer_skin(base: Color) -> StandardMaterial3D:
-	return Mats.flat(base, 0.0, 0.7)
-
-
-static func _veins(parent: Node3D, count: int, spread: Vector3, center: Vector3, size: float) -> void:
-	var amber := Mats.get_mat("amber")
-	for i in count:
-		var p := center + Vector3(sin(i * 2.1) * spread.x, cos(i * 1.7) * spread.y, sin(i * 3.3) * spread.z)
-		box(parent, Vector3(size, size * 2.5, size), amber, p, Vector3(i * 0.7, i * 1.3, i * 0.4))
-
-
-static func _tracker(root: Node3D, o: Dictionary) -> void:
-	var skin := _killer_skin(Color(0.18, 0.16, 0.15))
-	var dark := _killer_skin(Color(0.08, 0.07, 0.07))
-	var hips := pivot(root, "Hips", Vector3(0, 0.95, 0))
-	for side in [-1, 1]:
-		var leg := pivot(hips, "LegL" if side < 0 else "LegR", Vector3(0.14 * side, 0, 0))
-		capsule(leg, 0.08, 0.95, dark, Vector3(0, -0.47, 0.05), Vector3(0.15, 0, 0))
-	var torso := pivot(hips, "Torso", Vector3(0, 0.05, 0))
-	torso.rotation.x = -0.45  # hunched forward
-	capsule(torso, 0.2, 0.8, skin, Vector3(0, 0.38, 0))
-	_veins(torso, 6, Vector3(0.12, 0.25, 0.1), Vector3(0, 0.45, 0.12), 0.04)
-	var head := pivot(torso, "Head", Vector3(0, 0.88, -0.05))
-	sphere(head, 0.15, skin, Vector3.ZERO, Vector3(0.85, 1.0, 1.25))
-	box(head, Vector3(0.2, 0.03, 0.05), Mats.get_mat("amber"), Vector3(0, 0.0, -0.17))  # glowing slit
-	for side in [-1, 1]:
-		var arm := pivot(torso, "ArmL" if side < 0 else "ArmR", Vector3(0.28 * side, 0.7, 0))
-		capsule(arm, 0.06, 0.95, skin, Vector3(0, -0.45, 0))
-		for k in 3:
-			box(arm, Vector3(0.02, 0.02, 0.22), Mats.flat(Color(0.8, 0.75, 0.6)), Vector3((k - 1) * 0.04, -0.95, -0.08), Vector3(0.6, 0, 0))
-	root.set_meta("rig", "biped")
-
-
-static func _brute(root: Node3D, o: Dictionary) -> void:
-	var skin := _killer_skin(Color(0.26, 0.2, 0.17))
-	var dark := _killer_skin(Color(0.12, 0.1, 0.09))
-	var hips := pivot(root, "Hips", Vector3(0, 1.05, 0))
-	for side in [-1, 1]:
-		var leg := pivot(hips, "LegL" if side < 0 else "LegR", Vector3(0.28 * side, 0, 0))
-		capsule(leg, 0.17, 1.05, dark, Vector3(0, -0.52, 0))
-	var torso := pivot(hips, "Torso", Vector3(0, 0.0, 0))
-	torso.rotation.x = -0.25
-	box(torso, Vector3(1.05, 1.0, 0.7), skin, Vector3(0, 0.6, 0))
-	sphere(torso, 0.42, skin, Vector3(0, 1.0, 0.12), Vector3(1.4, 0.8, 1.0))
-	_veins(torso, 10, Vector3(0.4, 0.3, 0.1), Vector3(0, 0.95, 0.38), 0.08)
-	var head := pivot(torso, "Head", Vector3(0, 1.22, -0.28))
-	sphere(head, 0.17, skin, Vector3.ZERO, Vector3(1.0, 0.9, 1.0))
-	box(head, Vector3(0.18, 0.04, 0.05), Mats.get_mat("amber"), Vector3(0, 0.02, -0.16))
-	for side in [-1, 1]:
-		var arm := pivot(torso, "ArmL" if side < 0 else "ArmR", Vector3(0.66 * side, 1.0, 0))
-		capsule(arm, 0.16, 1.15, skin, Vector3(0, -0.5, 0))
-		sphere(arm, 0.2, dark, Vector3(0, -1.1, 0), Vector3(1.0, 0.9, 1.1))
-	root.set_meta("rig", "biped")
-
-
-static func _lurker(root: Node3D, o: Dictionary) -> void:
-	var skin := _killer_skin(Color(0.42, 0.4, 0.36))
-	var dark := _killer_skin(Color(0.2, 0.19, 0.18))
-	var hips := pivot(root, "Hips", Vector3(0, 1.1, 0))
-	for side in [-1, 1]:
-		var leg := pivot(hips, "LegL" if side < 0 else "LegR", Vector3(0.1 * side, 0, 0))
-		capsule(leg, 0.05, 1.1, dark, Vector3(0, -0.55, 0))
-	var torso := pivot(hips, "Torso", Vector3.ZERO)
-	capsule(torso, 0.13, 0.75, skin, Vector3(0, 0.35, 0))
-	var neck := pivot(torso, "Neck", Vector3(0, 0.7, 0))
-	neck.rotation.x = -0.6
-	capsule(neck, 0.06, 0.5, skin, Vector3(0, 0.22, 0))
-	var head := pivot(neck, "Head", Vector3(0, 0.5, 0))
-	sphere(head, 0.13, skin, Vector3.ZERO, Vector3(0.9, 0.8, 1.3))
-	box(head, Vector3(0.16, 0.05, 0.05), Mats.flat(Color(0.5, 0.05, 0.05), 1.2), Vector3(0, -0.05, -0.16))  # mouth
-	_veins(torso, 4, Vector3(0.08, 0.2, 0.08), Vector3(0, 0.4, 0.1), 0.03)
-	for side in [-1, 1]:
-		var arm := pivot(torso, "ArmL" if side < 0 else "ArmR", Vector3(0.18 * side, 0.65, 0))
-		capsule(arm, 0.04, 1.0, skin, Vector3(0, -0.48, 0))
-	root.set_meta("rig", "biped")
-
-
-static func _elite(root: Node3D, o: Dictionary) -> void:
-	_survivor(root, {"color": o.get("color", Color(0.3, 0.25, 0.2)).darkened(0.4)})
-	var torso := root.get_node("Hips/Torso") as Node3D
-	_veins(torso, 7, Vector3(0.16, 0.25, 0.12), Vector3(0, 0.35, 0.0), 0.05)
-	var head := root.get_node("Hips/Torso/Head") as Node3D
-	box(head, Vector3(0.16, 0.035, 0.04), Mats.get_mat("amber"), Vector3(0, 0.02, -0.12))
-	torso.rotation.x = -0.25
-
-
-static func _husk(root: Node3D, o: Dictionary) -> void:
-	_survivor(root, {"color": Color(0.2, 0.18, 0.15)})
-	var torso := root.get_node("Hips/Torso") as Node3D
-	torso.rotation.x = -0.5
-	_veins(torso, 5, Vector3(0.15, 0.2, 0.1), Vector3(0, 0.35, 0.05), 0.05)
-	root.scale = Vector3.ONE * 0.92
 
 
 static func _vehicle(root: Node3D, o: Dictionary) -> void:

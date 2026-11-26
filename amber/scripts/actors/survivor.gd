@@ -35,7 +35,7 @@ var drop := {}               # mid drop-down: {from, to, h0, h1, t, press}
 
 
 func _build_model() -> void:
-	attach_model(Models.make("survivor", {"color": Defs.ROLE_COLORS[role]}))
+	attach_model(Models.make("survivor", {"color": Defs.ROLE_COLORS[role], "role": role, "variant": slot.id if slot else 0}))
 
 
 func setup_survivor(match_ref: Match, s: Slot, p: Vector2) -> void:

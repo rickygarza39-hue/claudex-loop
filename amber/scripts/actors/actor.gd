@@ -51,6 +51,25 @@ var channel := {}        # current hold interaction
 var model_root: Node3D
 var model: Node3D
 var rig := {}
+var anim_player: AnimationPlayer = null   # set when an imported model brings its own clips
+var anim_clips := {}                      # lower-case clip name -> clip
+var anim_cur := ""
+const RIG_JOINTS := ["Hips", "LegL", "LegR", "ShinL", "ShinR", "FootL", "FootR", "Torso", "Neck", "Head",
+	"ArmL", "ArmR", "ForearmL", "ForearmR", "HandL", "HandR"]
+## Which clip names an imported model may use for each state (first match wins).
+const CLIP_NAMES := {
+	"idle": ["idle", "breathing", "stand"],
+	"walk": ["walk", "walking"],
+	"run": ["run", "running", "sprint"],
+	"crouch": ["crouch walk", "crouch_walk", "crouchwalk", "sneak", "crouch"],
+	"crouch_idle": ["crouch idle", "crouch_idle", "crouch"],
+	"crawl": ["crawl", "crawling", "downed"],
+	"work": ["interact", "work", "repair", "build", "pick", "use"],
+	"attack": ["attack", "swing", "slash", "punch", "hit"],
+	"fall": ["fall", "falling", "jump"],
+	"stunned": ["stunned", "stun", "dizzy", "hit reaction", "hit_reaction"],
+	"squeeze": ["squeeze", "sidestep", "shimmy", "crouch walk"],
+}
 var tag: Label3D
 
 
@@ -86,10 +105,18 @@ func attach_model(n: Node3D) -> void:
 	model = n
 	model_root.add_child(n)
 	rig.clear()
-	for nm in ["Hips", "LegL", "LegR", "Torso", "ArmL", "ArmR", "Head", "Neck"]:
+	for nm in RIG_JOINTS:
 		var found := n.find_child(nm, true, false)
 		if found is Node3D:
 			rig[nm] = found
+			(found as Node3D).set_meta("rest", (found as Node3D).rotation)
+			(found as Node3D).set_meta("rest_pos", (found as Node3D).position)
+	# an imported, rigged model (Forge, Mixamo...) with its own animation clips
+	anim_player = _find_anim_player(n)
+	anim_clips.clear()
+	if anim_player != null:
+		for clip in anim_player.get_animation_list():
+			anim_clips[String(clip).to_lower()] = clip
 
 
 # ------------------------------------------------------------------------------
@@ -331,32 +358,175 @@ func _sync_transform(dt: float) -> void:
 		model_root.rotation.y = facing
 
 
+## Procedural animation for the built-in jointed bodies.
+func _animate_rig(dt: float, sf: float, state: String) -> void:
+	var tm := mt.time
+	var run := smoothstep(0.62, 1.0, sf)
+	var amp := clampf(sf * 1.35, 0.0, 1.0)
+	if state == "squeeze":
+		amp *= 0.5
+	anim_phase += moved * lerpf(2.7, 2.0, run)
+	var ph := anim_phase
+	var leg_amp := amp * lerpf(0.55, 0.9, run)
+	var arm_amp := amp * lerpf(0.45, 0.95, run)
+	var crouch := crouch_amount
+	var breathe := sin(tm * 1.7 + float(get_instance_id() % 7)) * (1.0 - amp)
+	var lt := sin(ph) * leg_amp
+	# legs: thigh swings, the knee bends most while the leg swings forward
+	var knee_l := 0.12 + maxf(0.0, cos(ph)) * leg_amp * lerpf(1.0, 1.6, run)
+	var knee_r := 0.12 + maxf(0.0, -cos(ph)) * leg_amp * lerpf(1.0, 1.6, run)
+	var thigh_c := crouch * 1.05
+	_jr("LegL", Vector3(lt + thigh_c, 0, 0))
+	_jr("LegR", Vector3(-lt + thigh_c, 0, 0))
+	_jr("ShinL", Vector3(-knee_l - crouch * 1.7, 0, 0))
+	_jr("ShinR", Vector3(-knee_r - crouch * 1.7, 0, 0))
+	_jr("FootL", Vector3((knee_l - lt) * 0.45 + crouch * 0.6, 0, 0))
+	_jr("FootR", Vector3((knee_r + lt) * 0.45 + crouch * 0.6, 0, 0))
+	# hips: bob twice per stride, sink when crouched, twist with the stride
+	if rig.has("Hips"):
+		var hips: Node3D = rig["Hips"]
+		var rp: Vector3 = hips.get_meta("rest_pos")
+		var bob := absf(sin(ph)) * lerpf(0.03, 0.07, run) * amp - run * 0.05
+		hips.position = rp + Vector3(0, bob - crouch * 0.34, 0)
+		hips.rotation = (hips.get_meta("rest") as Vector3) + Vector3(0, sin(ph) * 0.1 * amp + (PI * 0.5 if state == "squeeze" else 0.0), 0)
+	# torso: lean into a run, counter-twist, breathe
+	_jr("Torso", Vector3(-0.22 * run - crouch * 0.35 + breathe * 0.025, -sin(ph) * 0.16 * amp - anim_attack * 0.35, 0))
+	# arms swing against the legs; elbows bend more when running
+	var elbow := 0.2 + run * 1.15 + crouch * 0.5
+	var al := -sin(ph) * arm_amp
+	var ar := sin(ph) * arm_amp
+	var arm_l := Vector3(al + crouch * 0.3, 0, -0.06 - breathe * 0.02)
+	var arm_r := Vector3(ar + crouch * 0.3, 0, 0.06 + breathe * 0.02)
+	var fl := Vector3(elbow, 0, 0)
+	var fr := Vector3(elbow, 0, 0)
+	match state:
+		"work":
+			# hands busy in front: picking, building, healing
+			var w := sin(tm * 9.0) * 0.12
+			arm_l = Vector3(1.15 + w, 0, -0.15)
+			arm_r = Vector3(1.15 - w, 0, 0.15)
+			fl = Vector3(0.7, 0, 0)
+			fr = Vector3(0.7, 0, 0)
+		"attack":
+			# right arm raised high, then brought down through the swing
+			arm_r = Vector3(anim_attack * 2.9 - 0.2, 0, 0.25)
+			fr = Vector3(0.3 + anim_attack * 0.9, 0, 0)
+			arm_l = Vector3(0.5, 0, -0.3)
+		"fall":
+			arm_l = Vector3(2.3, 0, -0.5)
+			arm_r = Vector3(2.3, 0, 0.5)
+			_jr("LegL", Vector3(1.1, 0, 0))
+			_jr("LegR", Vector3(0.7, 0, 0))
+			_jr("ShinL", Vector3(-1.6, 0, 0))
+			_jr("ShinR", Vector3(-1.2, 0, 0))
+		"squeeze":
+			arm_l = Vector3(0.2, 0, -0.1)
+			arm_r = Vector3(0.2, 0, 0.1)
+		"crawl":
+			# downed: drag yourself along, arms reaching overhead in turn
+			var reach := sin(ph * 0.8)
+			arm_l = Vector3(2.5 + reach * 0.5, 0, -0.2)
+			arm_r = Vector3(2.5 - reach * 0.5, 0, 0.2)
+			fl = Vector3(0.5 - reach * 0.4, 0, 0)
+			fr = Vector3(0.5 + reach * 0.4, 0, 0)
+			_jr("LegL", Vector3(0.1 + reach * 0.15, 0, 0))
+			_jr("LegR", Vector3(0.1 - reach * 0.15, 0, 0))
+			_jr("ShinL", Vector3(-0.3, 0, 0))
+			_jr("ShinR", Vector3(-0.3, 0, 0))
+	if self is Survivor and get("pinned_by") != null:
+		# grabbed by a tongue: flailing
+		arm_l = Vector3(1.8 + sin(tm * 14.0) * 0.7, 0, -0.4)
+		arm_r = Vector3(1.8 + cos(tm * 13.0) * 0.7, 0, 0.4)
+	_jr("ArmL", arm_l)
+	_jr("ArmR", arm_r)
+	_jr("ForearmL", fl)
+	_jr("ForearmR", fr)
+	# head follows where you look, and settles while walking
+	var pitch := clampf(look_pitch * 0.6, -0.5, 0.45)
+	if state == "work":
+		pitch = -0.35
+	_jr("Head", Vector3(pitch + sin(ph * 2.0) * 0.03 * amp, 0, 0))
+	_jr("Neck", Vector3(-run * 0.1, 0, 0))
+
+
+func _find_anim_player(n: Node) -> AnimationPlayer:
+	if n is AnimationPlayer:
+		return n
+	for c in n.get_children():
+		var r := _find_anim_player(c)
+		if r != null:
+			return r
+	return null
+
+
+## What the body is doing, for animation.
+func anim_state(speed_frac: float) -> String:
+	if downed_pose > 0.5:
+		return "crawl"
+	if airborne:
+		return "fall"
+	if anim_attack > 0.05:
+		return "attack"
+	if not channel.is_empty():
+		return "work"
+	if in_gap:
+		return "squeeze"
+	if crouch_amount > 0.5:
+		return "crouch" if speed_frac > 0.1 else "crouch_idle"
+	if speed_frac > 0.82:
+		return "run"
+	if speed_frac > 0.08:
+		return "walk"
+	return "idle"
+
+
+func _play_clip(state: String, speed_frac: float) -> void:
+	var clip := ""
+	for nm in CLIP_NAMES.get(state, []):
+		for have in anim_clips:
+			if have == nm or have.ends_with("|" + nm) or have.contains(nm):
+				clip = anim_clips[have]
+				break
+		if clip != "":
+			break
+	if clip == "" and state != "idle":
+		_play_clip("walk" if state in ["run", "crouch", "squeeze"] else "idle", speed_frac)
+		return
+	if clip != "" and clip != anim_cur:
+		anim_cur = clip
+		var a := anim_player.get_animation(clip)
+		if a != null and state not in ["attack", "fall"]:
+			a.loop_mode = Animation.LOOP_LINEAR
+		anim_player.play(clip, 0.2)
+	if state in ["walk", "run", "crouch", "crawl", "squeeze"]:
+		anim_player.speed_scale = clampf(speed_frac * (1.0 if state != "walk" else 1.6), 0.5, 1.6)
+	else:
+		anim_player.speed_scale = 1.0
+
+
+func _jr(nm: String, rot: Vector3) -> void:
+	## Set a joint's rotation relative to its rest pose.
+	if rig.has(nm):
+		var j: Node3D = rig[nm]
+		j.rotation = (j.get_meta("rest") as Vector3) + rot
+
+
 func update_visual(dt: float) -> void:
 	_sync_transform(dt)
 	if not visuals or model == null:
 		return
-	var speed_frac := clampf(moved / maxf(dt, 0.0001) / 4.0, 0.0, 1.6)
-	anim_phase += moved * 2.4
-	var swing := sin(anim_phase) * 0.7 * clampf(speed_frac * 1.4, 0.0, 1.0)
-	if rig.has("LegL"):
-		rig["LegL"].rotation.x = swing
-		rig["LegR"].rotation.x = -swing
-	if rig.has("ArmL"):
-		rig["ArmL"].rotation.x = -swing * 0.8
-		rig["ArmR"].rotation.x = swing * 0.8 - anim_attack * 2.2
-	if rig.has("Hips"):
-		var bob := absf(sin(anim_phase)) * 0.05 * clampf(speed_frac, 0.0, 1.0)
-		var base_y: float = rig["Hips"].get_meta("base_y", rig["Hips"].position.y)
-		if not rig["Hips"].has_meta("base_y"):
-			rig["Hips"].set_meta("base_y", base_y)
-		rig["Hips"].position.y = base_y + bob - crouch_amount * 0.38
-	if rig.has("Torso"):
-		var base_rx: float = rig["Torso"].get_meta("base_rx", rig["Torso"].rotation.x)
-		if not rig["Torso"].has_meta("base_rx"):
-			rig["Torso"].set_meta("base_rx", base_rx)
-		rig["Torso"].rotation.x = base_rx - crouch_amount * 0.45
-	if not rig.has("Hips") and model.has_meta("external"):
-		model.position.y = absf(sin(anim_phase)) * 0.05
+	var speed := moved / maxf(dt, 0.0001)
+	var speed_frac := clampf(speed / 4.2, 0.0, 1.6)
+	var state := anim_state(speed_frac)
+	if anim_player != null:
+		_play_clip(state, speed_frac)
+	if rig.is_empty():
+		if model.has_meta("external") and anim_player == null:
+			model.position.y = absf(sin(anim_phase)) * 0.05
+		anim_phase += moved * 2.4
+	else:
+		_animate_rig(dt, speed_frac, state)
+
 	# lying down when downed
 	model_root.rotation.x = -downed_pose * 1.45
 	model_root.position.y = downed_pose * 0.25
