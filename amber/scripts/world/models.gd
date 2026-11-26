@@ -18,7 +18,7 @@ const SLOTS := {
 	"elite": [1.8, "Elite infected (turned survivor)"],
 	"husk": [1.6, "Swarm husk (AI infected)"],
 	"station_antenna": [6.0, "Radio stage 1: antenna mast"],
-	"station_generator": [1.3, "Radio stage 2: generator"],
+	"station_generator": [0.8, "Radio stage 2: generator"],
 	"station_transmitter": [1.6, "Radio stage 3: transmitter with dish"],
 	"station_base": [1.0, "Radio station crate/table (before stage 1)"],
 	"helicopter": [3.2, "Rescue helicopter (length about 11 m)"],
@@ -51,6 +51,39 @@ const SLOTS := {
 	"watchtower_top": [4.0, "Watchtower cabin on stilts"],
 	"nest": [2.0, "The Nest: amber heart of the infection"],
 	"crate": [1.0, "Wooden crate"],
+	# map props: crate/barrel tiles and boulders pick one of these at random
+	"prop_crate_b": [1.0, "Wooden crate, second style"],
+	"prop_crate_c": [0.75, "Military crate"],
+	"prop_barrel_a": [1.05, "Oil barrel"],
+	"prop_barrel_b": [1.0, "Rusted barrel"],
+	"prop_boulder_a": [1.5, "Boulder"],
+	"prop_boulder_b": [1.3, "Boulder, second style"],
+	"prop_boulder_c": [1.1, "Grey rock"],
+	# clutter: small props scattered against walls, by zone
+	"decor_trashbag": [0.55, "Trash bag"],
+	"decor_cardboard": [0.45, "Cardboard box"],
+	"decor_utility_box": [1.0, "Electrical utility box"],
+	"decor_toolbox": [0.3, "Metal toolbox"],
+	"decor_gas_mask": [0.22, "Old gas mask"],
+	"decor_propane": [0.95, "Propane tank"],
+	"decor_bucket": [0.4, "Wooden bucket"],
+	"decor_wheelchair": [1.0, "Wheelchair"],
+	"decor_medical_box": [0.3, "Medical box"],
+	"decor_cement": [0.25, "Cement bag"],
+	"decor_trash_can": [0.95, "Metal trash can"],
+	"decor_bed": [0.9, "Old bed frame"],
+}
+
+## Prop variants used when the files exist (Poly Haven scans ship in assets/models).
+const CRATE_VARIANTS := ["crate", "prop_crate_b", "prop_crate_c", "prop_barrel_a", "prop_barrel_b"]
+const BOULDER_VARIANTS := ["prop_boulder_a", "prop_boulder_b", "prop_boulder_c"]
+const CLUTTER := {
+	Defs.Z.TOWN: ["decor_trashbag", "decor_cardboard", "decor_trash_can", "decor_bucket", "decor_cement", "decor_utility_box"],
+	Defs.Z.MINE: ["decor_propane", "decor_toolbox", "decor_cement", "decor_cardboard", "decor_bucket"],
+	Defs.Z.LAB: ["decor_wheelchair", "decor_bed", "decor_medical_box", "decor_gas_mask", "decor_toolbox", "decor_cardboard"],
+	Defs.Z.SWAMP: ["decor_bucket", "decor_trashbag"],
+	Defs.Z.FIELD: ["decor_bucket", "decor_cement"],
+	Defs.Z.HIGH: ["decor_toolbox", "decor_propane"],
 }
 
 static var _mesh_cache := {}

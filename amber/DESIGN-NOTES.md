@@ -12,7 +12,7 @@ Building Amber from the game design document (GDD) meant making calls wherever t
 - Only a **cure** (buy it, then hold E on the downed survivor) or a **Medic's revive** (once per match) brings someone back. They return wounded.
 - If the timer runs out, the survivor **turns**. Inside their own base, they're dazed for 10 s and then reveal the base's structures, traps and hatch to the killers, as the GDD says.
 
-**Cures.** The GDD says "each person can make only one", so each survivor can **buy** one cure per match at a terminal. There are 5 per match, priced at $200.
+**Cures.** The GDD says "each person can make only one", so a cure is a loadout item: you can carry one into a match once it is unlocked in the Survivor Kit tree.
 
 **Pot halving and bounty.** The duo's pot is halved when a partner is caught, and also when one turns. The lost half becomes the bounty on the killer who caught them, with a $40 minimum. The first duo to stun that killer collects it, with a flare or a trap. The GDD names a bounty but no value; recycling the lost half makes revenge worth something.
 
@@ -52,9 +52,11 @@ The results screen also lists every player's outcome, so partial wins are visibl
 
 **Helicopter.** Arrives 90 s after the call. While a main killer is in the landing zone it hovers, but for at most 30 s in total, so killers can't block it forever (outcome 3). Then there's a 15 s boarding window. A survivor whose partner is gone can board alone. If the duo misses the helicopter, it can call again.
 
-**Shops.** 4 terminals. Every 5 minutes, 2 random ones open for 60 s. Survivors get a 20 s warning and see which ones will open; killers find out only when they open. A fixed schedule at fixed spots would invite camping.
+**No shop: progression instead.** An earlier build had supply terminals in the match. They are gone. Items come from your loadout, chosen before the match and unlocked in Diablo-style skill trees bought with Amber, which every match pays out (see the README). Money in the match pays only for base building and repairs; radio stages need only parts. The tree perks are small (a few percent per rank) so a high-level player is better, not a different game.
 
-**Knockdown items.** Four flare guns. A flare knocks a killer down for 5 s (the Brute for 3.25 s), within 11 m and a 28° cone. Survivors see every flare on their map. Killers see 22 m hot zones that shift every 55 s and vanish once a flare is picked up.
+**Knockdown items.** Flare guns are loadout items (bots carry one 30% of the time). A flare knocks a killer down for 5 s (the Brute for 3.25 s), within 11 m and a 28° cone.
+
+**Crevices and drop-downs (Texas Chainsaw Massacre-style escapes).** The map has 70 squeeze gaps. Only the Lurker among killers crawls through them, at 1.5 m/s against a survivor's 2.0, so they buy time against it rather than safety. Drop-downs are one-way jumps off 3 m cliff edges, picked only where walking round takes a long way. Landing: press E in the last 0.28 s of a 0.7 s fall to roll (1.2 s burst of speed); otherwise you are wounded if healthy and slowed for 3 s, but a fall never downs you.
 
 **Betrayal.** Only parts **stored** at a base can be stolen. Installed parts are safe, which matches "can't sabotage another duo's radio".
 - Stealing takes 7 s and is very loud.
@@ -91,7 +93,7 @@ The results screen also lists every player's outcome, so partial wins are visibl
 | Final push | 20:00 |
 | Purge | 27:00 |
 
-**Meta progression and lore.** Left out, as the GDD defers both.
+**Meta progression.** Added as Amber, levels and skill trees (see above). **Lore** is still left out, as the GDD defers it.
 
 ## Balance status (bots against bots)
 

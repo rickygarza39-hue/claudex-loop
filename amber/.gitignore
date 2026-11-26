@@ -6,3 +6,7 @@
 
 # temporary render settings (video recording)
 override.cfg
+# Godot extracts textures from the .glb files on import; they are regenerated
+/assets/models/*.import
+/assets/models/*.jpg
+/assets/models/*.png

@@ -33,8 +33,8 @@ The project uses the **Compatibility** renderer, so it runs on most hardware. On
 | Move | WASD | WASD |
 | Look | Mouse | Mouse |
 | Run (noisy) / crouch (quiet, harder to see) | Shift / Ctrl or C | — |
-| Interact (hold) | E: pick locks, pick up, set up base, build radio stages, heal, revive, cure, break tongues, shop, steal, hide, board | E: catch a downed survivor, smash boards and cell doors, search lockers, seal found hatches |
-| Primary | LMB: use tool (1 flare gun, 2 snare, 3 flash trap) | LMB: attack (hold on walls and the radio to smash them) |
+| Interact (hold) | E: pick locks, pick up, set up base, build radio stages, heal, revive, cure, break tongues, steal, hide, board, drop off a ledge (E again as you land) | E: catch a downed survivor, smash boards and cell doors, search lockers, seal found hatches |
+| Primary | LMB: use tool (1 flare gun, 2 snare, 3 flash trap, 4 medkit, 5 part scanner) | LMB: attack (hold on walls and the radio to smash them) |
 | Secondary | RMB: perfect parry (time it as the swing lands) | RMB: signature power |
 | Role ability | Q: Engineer barricade, Medic scent mask, Trapper drop trap | — |
 | Other | F flashlight · B build mode · L lockdown (once) · G give $25 to the poorest duo | R route edit · N unleash the Nest event |
@@ -58,20 +58,27 @@ The project uses the **Compatibility** renderer, so it runs on most hardware. On
 - **Survivors.**
   - Two hits: the first wounds you and gives an adrenaline burst, the second downs you.
   - Downed survivors crawl. Reaching your own base adds 2 minutes before you turn.
-  - Only cures (5 per match, one per person) or a Medic revive save you. If you turn inside your base, you reveal it to the killers.
+  - Only a cure (a loadout item) or a Medic revive saves you. If you turn inside your base, you reveal it to the killers.
   - Perfect parry has a 0.12 s window.
-  - There are 4 flare guns (knockdown items). Survivors see them on the map; killers only see shifting hot zones.
+  - Flare guns (knockdowns) are loadout items. Bots roll their own loadouts.
 - **Roles.** Engineer (fast builder, quick barricade, spiked and metal upgrades), Medic (fast heals, one revive, scent mask) and Trapper (more traps, snares, flash traps; killers get brief immunity after a trap).
 - **Killers.** Each has a shared kit plus one signature power:
   - **Tracker:** goes invisible and fast but blind to survivors, follows footprints, blood and noise. The scent mask counters it.
   - **Brute:** charges through walls, turns badly, is stunned on a miss and stopped by metal walls.
   - **Lurker:** silent, with a long tongue grab that pulls a survivor in and holds them. A partner breaks the tongue. The Lurker is weak once spotted.
-- **Economy.**
-  - Each duo shares a money pot. Earn it from loot, trapping, stunning, parries, saving your partner, losing a killer in a chase, and bounties.
+- **Escapes.**
+  - 70 survivor-only crevices per map. The Lurker is the one killer who can crawl in after you, slowly.
+  - Up to 16 one-way drop-downs off the high-ground cliffs (blue arrows on the map). Killers can't follow. Press E at the ledge, then E again in the green zone as you land to roll; mistime it and you land hurt and limping.
+- **Money (building only).**
+  - Each duo shares a money pot for base building and station repairs. Earn it from loot, trapping, stunning, parries, saving your partner, losing a killer in a chase, and bounties.
   - When a partner is caught, the duo's pot is halved and the lost half becomes a bounty on that killer.
-  - Two of the four supply terminals open every 5 minutes.
+- **Progression between matches.**
+  - Every match pays out **Amber**, win or lose. Lifetime Amber raises your level along a reward track (bonus Amber each level, loadout slots at levels 1, 3 and 8).
+  - Spend Amber in Diablo-style skill trees (title screen → Skill Trees & Loadout): a Survivor Kit tree that unlocks items, one tree per survivor role and one per killer. Three branches of four tiers each; a tier opens once you've spent enough points in that tree; tier 4 holds the capstones; resetting a tree refunds 80%.
+  - Items are picked before the match in your loadout: flare gun, medkit, cure, trap kit, part scanner. There is no shop in the match.
+  - Your profile is saved on your computer (`user://amber_profile.json`).
 - **Radio and escape.**
-  - Stages: Antenna (cable spool), Generator (fuel can, spark plug), Transmitter (circuit board, power cell, radio dish). Each stage also costs money.
+  - Stages: Antenna (cable spool), Generator (fuel can, spark plug), Transmitter (circuit board, power cell, radio dish). Stages need only the parts you find.
   - Calling the helicopter alerts the whole map. It arrives after 90 s and hovers while a killer holds the landing zone, for 30 s at most.
   - The duo then has 15 s to board.
 - **Bases.** Walls, doors, barricades, alarms, floodlights, decoys, lockers and traps. Each duo also gets one hidden escape hatch and one 20-second lockdown. Killers siege and smash stations, and repairs cost money.
@@ -90,7 +97,7 @@ Every model is a named slot. Drop a `.glb`, `.gltf` or `.obj` exported from Forg
 
 - **Online multiplayer.** You play against bots. Godot's high-level multiplayer API could carry it later; the match logic is already separated from rendering and input.
 - **Art and animation.** Characters and props are built from primitives with procedural animation, and textures are procedural. Forge models drop in as described above.
-- **Meta progression** (unlocks, perks, cosmetics). The GDD deferred it as well.
+- **Cosmetics** and online accounts for progression.
 
 ## Tuning and design notes
 
@@ -128,7 +135,7 @@ amber/
   scripts/world/    map_gen.gd, map_data.gd, nav.gd (A*), world_view.gd (3D build), mats.gd (procedural
                     textures), models.gd + object_models.gd (model slots and placeholders)
   scripts/game/     match.gd (main loop, events), interact.gd (hold-E actions), bases.gd (radio, heli,
-                    structures, betrayal), shop_sys.gd, nest_sys.gd, heli.gd, structure.gd, item_pickup.gd,
+                    structures, betrayal), nest_sys.gd, heli.gd, structure.gd, item_pickup.gd,
                     slot.gd, duo.gd, base.gd
   scripts/actors/   actor.gd (grid movement, collision, squeeze gaps, animation), survivor.gd, killer.gd
   scripts/ai/       survivor_ai.gd, killer_ai.gd

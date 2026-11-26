@@ -34,6 +34,8 @@ func build(map: MapData) -> void:
 	_lights()
 	_amber()
 	_decor()
+	_place_scan_props()
+	_clutter()
 
 
 # ------------------------------------------------------------------------------
@@ -322,7 +324,11 @@ func _emit_tile(tools: Dictionary, x: int, y: int) -> void:
 		Defs.T.PROP:
 			var c := Vector3(x0 + 1.0, fh, z0 + 1.0)
 			var r := float((x * 7 + y * 13) % 10) / 10.0 * TAU
-			if st == Defs.S.CRATE:
+			var variants: Array = Models.CRATE_VARIANTS if st == Defs.S.CRATE else (Models.BOULDER_VARIANTS if st == Defs.S.BOULDER else [])
+			var pick: String = variants[(x * 7 + y * 13) % variants.size()] if not variants.is_empty() else ""
+			if pick != "" and Models.has_external(pick):
+				_scan_props.append([pick, c, r, st == Defs.S.BOULDER])
+			elif st == Defs.S.CRATE:
 				var s := 0.95 + 0.15 * float((x * 3 + y) % 3)
 				_box(_tool(tools, "crate"), c + Vector3(-s * 0.5, 0, -s * 0.5), c + Vector3(s * 0.5, s, s * 0.5))
 				if (x + y) % 3 == 0:
@@ -561,6 +567,52 @@ func _amber() -> void:
 	mmi.material_override = Mats.get_mat("amber")
 	mmi.name = "Amber"
 	add_child(mmi)
+
+
+var _scan_props: Array = []   # [slot, position, yaw, is_boulder] from prop tiles
+
+
+## Prop tiles get a scanned crate, barrel or boulder when the model file exists.
+func _place_scan_props() -> void:
+	for sp in _scan_props:
+		var n := Models.make(sp[0])
+		n.position = sp[1]
+		n.rotation.y = sp[2]
+		if sp[3]:
+			n.scale = Vector3.ONE * (1.0 + fmod(sp[2], 0.6))
+		add_child(n)
+	_scan_props.clear()
+
+
+## Small props against walls, chosen per zone. Visual only: nothing here blocks movement.
+func _clutter() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = m.seed * 17 + 5
+	var placed := 0
+	for y in range(1, m.h - 1):
+		for x in range(1, m.w - 1):
+			if placed >= 220 or m.t(x, y) != Defs.T.FLOOR or rng.randf() > 0.06:
+				continue
+			var zone := m.zone(x, y)
+			if not Models.CLUTTER.has(zone):
+				continue
+			var wall := Vector2i.ZERO
+			for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+				if m.t(x + d.x, y + d.y) == Defs.T.WALL:
+					wall = d
+					break
+			if wall == Vector2i.ZERO:
+				continue
+			var opts: Array = Models.CLUTTER[zone]
+			var slot: String = opts[rng.randi() % opts.size()]
+			if not Models.has_external(slot):
+				continue
+			var c := MapData.center_of(Vector2i(x, y)) + Vector2(wall) * 0.6 + Vector2(-wall.y, wall.x) * rng.randf_range(-0.5, 0.5)
+			var n := Models.make(slot)
+			n.position = Vector3(c.x, m.tile_height(Vector2i(x, y)), c.y)
+			n.rotation.y = Actor.yaw_of(-Vector2(wall)) + rng.randf_range(-0.4, 0.4)
+			add_child(n)
+			placed += 1
 
 
 func _decor() -> void:
